@@ -1,0 +1,8 @@
+{
+  "name": "2898-scouter",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
+  }
+}
