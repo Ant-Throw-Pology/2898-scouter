@@ -4,6 +4,26 @@ body {
     background-color: var(--bg, #eee);
 }
 
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
 #scouter-id {
     margin-left: auto;
     margin-right: auto;
@@ -11,8 +31,12 @@ body {
     padding: 10px;
 }
 
+input, button, select {
+    color: inherit;
+}
+
 input[type=text], select, button {
-    background-color: rgb(240,240,240);
+    background-color: color-mix(in srgb, var(--bg) 90%, var(--color));
     border-style: none;
     border-radius: 15px;
     font-size: 18px;
@@ -21,16 +45,18 @@ input[type=text], select, button {
 }
 
 input[type=text]:hover, select:hover, button:hover {
-    background-color: rgb(220,220,220);
+    background-color: color-mix(in srgb, var(--bg) 80%, var(--color));
 }
 
 button:active {
-    background-color: rgb(200,200,200);
+    background-color: color-mix(in srgb, var(--bg) 70%, var(--color));
 }
 
 input[type=text]{
     outline:none;
     min-width: 250px;
+    max-width: 1000px;
+    overflow-x: visible;
     
 }
 
