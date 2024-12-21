@@ -1,3 +1,32 @@
 body {
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
+
+#scouter-id {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    padding: 10px;
+}
+
+input[type=text], select, button {
+    background-color: rgb(240,240,240);
+    border-style: none;
+    border-radius: 15px;
+    font-size: 18px;
+    text-align: center;
+    height: 40px;
+}
+
+input[type=text]:hover, select:hover, button:hover {
+    background-color: rgb(220,220,220);
+}
+
+button:active {
+    background-color: rgb(200,200,200);
+}
+
+input[type=text]{
+    outline:none;
+    min-width: 250px;
+}
