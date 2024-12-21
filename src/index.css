@@ -1,5 +1,7 @@
 body {
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    color: var(--color, #111);
+    background-color: var(--bg, #eee);
 }
 
 #scouter-id {
@@ -29,4 +31,12 @@ button:active {
 input[type=text]{
     outline:none;
     min-width: 250px;
+    
+}
+
+#header {
+    padding: 0.6em;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
