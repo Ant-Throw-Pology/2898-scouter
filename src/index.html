@@ -4,10 +4,59 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>2898 Scouter</title>
+        <script>
+            // https://www.joshwcomeau.com/react/dark-mode/
+            function getInitialColorMode() {
+                const persistedColorPreference =
+                    window.localStorage.getItem('color-mode');
+                const hasPersistedPreference =
+                    typeof persistedColorPreference === 'string';
+                
+                // If the user has explicitly chosen light or dark,
+                // let's use it. Otherwise, this value will be null.
+                if (hasPersistedPreference) {
+                    return persistedColorPreference;
+                }
+                
+                // If they haven't been explicit, let's check the media query
+                const mql = window.matchMedia('(prefers-color-scheme: dark)');
+                const hasMediaQueryPreference = typeof mql.matches === 'boolean';
+                
+                if (hasMediaQueryPreference) {
+                    return mql.matches ? 'dark' : 'light';
+                }
+                
+                // If they are using a browser/OS that doesn't support
+                // color themes, let's default to 'light'.
+                return 'light';
+            }
+            let theme = getInitialColorMode();
+            document.write(`<style id="theme-style">
+    :root {
+        --color: ${theme == "light" ? "#111" : "#eee"};
+        --bg: ${theme == "light" ? "#eee" : "#111"};
+    }
+</style>`);
+        </script>
         <link rel="stylesheet" href="index.css">
     </head>
     <body>
-        <p>This worked!</p>
+        <div id="header">
+            <div>2898 Scouter</div>
+            <div id="theme-toggle"></div>
+            <script>
+                document.getElementById("theme-toggle").innerText = theme == "light" ? "☀" : "🌙";
+                document.getElementById("theme-toggle").addEventListener("click", function() {
+                    theme = {light: "dark", dark: "light"}[theme];
+                    document.getElementById("theme-style").innerHTML = `:root {
+    --color: ${theme == "light" ? "#111" : "#eee"};
+    --bg: ${theme == "light" ? "#eee" : "#111"};
+}`;
+                    this.innerText = theme == "light" ? "☀" : "🌙";
+                    localStorage.setItem("color-mode", theme);
+                });
+            </script>
+        </div>
         <script src="index.js"></script>
     </body>
 </html>
