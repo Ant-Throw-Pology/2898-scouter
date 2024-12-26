@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="resources/2898-icon.svg">
         <title>2898 Scouter</title>
         <script>
             // https://www.joshwcomeau.com/react/dark-mode/
@@ -57,19 +58,69 @@
                 });
             </script>
         </div>
-        <div id="scouter-id">
+        <div id="scouter-id" class="page">
             <h1>Welcome to 2898 Scouter</h1>
             <input type="text" placeholder="Your name" id="s-name"><br>
             <label for="scouter-role">Your scouting role:</label>
-            <select id="scouter-role" value="stand">
+            <select id="scouter-role">
                 <option value="stand">Stand scouter</option>
                 <option value="pit">Pit scouter</option>
+                <option value="head">Head scouter</option>
             </select>
             <br>
             <button id="sid-continue">Continue</button>
         </div>
-        <div id="welcome">
-            <h2 id="user-greeting"></h2>
+        <div id="storage-prompt" style="display:none" class="page">
+            <h1>Select storage location</h1>
+            <input type="file" directory webkitdirectory>
+            <h2>OR</h2>
+            <label for="usels">Use local storage</label>
+            <input type="checkbox" id="usels">
+            <p>Existing local storage will be cleared if you use this option.</p>
+            <button id="sp-continue">Continue</button>
+        </div>
+        <div id="config-select" style="display:none">
+            <h1>Select configuration</h1>
+            <div id="configs-list">
+                <button class="configuration">Oregon State Fairgrounds 2024 (District Event)</button>
+                <br>
+                <button class="configuration">Wilsonville High School 2024 (District Event)</button>
+                <br>
+                <button class="configuration">Bunnybots 2024 (Offseason District Event)</button>
+                <br>
+            </div>
+            <button id="cs-continue">Continue</button>
+        </div>
+        <div id="stands-team-list">
+            <h1>List of teams</h1>
+            <button>Change configuration</button>
+            <table>
+                <tr>
+                    <th>#</th>
+                    <th>Team name</th>
+                    <th>Scouts</th>
+                </tr>
+                <tr>
+                    <td>2471</td>
+                    <td>Team Mean Machine</td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>2898</td>
+                    <td>The Flying Hedgehogs</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>5970</td>
+                    <td>Beavertronics</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>9997</td>
+                    <td>FRC Test Team</td>
+                    <td>0</td>
+                </tr>
+            </table>
         </div>
         <script src="index.js"></script>
     </body>

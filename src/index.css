@@ -24,9 +24,8 @@ body {
     }
 }
 
-#scouter-id {
-    margin-left: auto;
-    margin-right: auto;
+.page {
+    margin: auto;
     text-align: center;
     padding: 10px;
 }
@@ -65,4 +64,7 @@ input[type=text]{
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+}
+button {
+    padding: 8px;
 }
