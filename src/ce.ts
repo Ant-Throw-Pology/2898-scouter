@@ -1,4 +1,41 @@
-import { makeid, mixin } from ".";
+export function mixin<
+    A extends {[x: string | number | symbol]: any},
+    B extends {[x: string | number | symbol]: any},
+    X extends PropertyKey[] | ((key: keyof B) => PropertyKey | boolean) | undefined
+>(object: A, extent: B, exclude?: X): A & (
+    X extends undefined ? B
+    : X extends (infer x extends PropertyKey)[] ?
+        {[k in keyof B as k extends x ? never : k]: B[k]}
+    : X extends (key: keyof B) => PropertyKey | boolean ?
+        {[k in keyof B as X extends (key: k) => infer R ? R extends true ? k : R extends PropertyKey ? R : never : never]: B[k]}
+    : {}
+) {
+    for (let [k, v] of Object.entries(extent) as [PropertyKey, any][]) {
+        if (k == "__proto__") continue;
+        if (Array.isArray(exclude) && exclude.includes(k)) continue;
+        if (typeof exclude == "function") {
+            const res = exclude(k);
+            if (typeof res == "boolean") {if (!res) continue;}
+            else k = res;
+        }
+        //@ts-ignore
+        object[k] = v;
+    };
+    //@ts-ignore
+    return object;
+}
+
+export function makeid(base: number | string | string[], len: number) {
+    let abc = typeof base == "string" || Array.isArray(base) ?
+        base
+    : typeof base == "number" && base <= 64 ?
+        "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-=".slice(0, base)
+    :
+        (() => {throw new TypeError("invalid base")})();
+    let str = "";
+    for (let i = 0; i < len; i++) str += abc[Math.floor(Math.random() * abc.length)].toString();
+    return str; 
+}
 
 type ElementConversions = {
     "a": HTMLAnchorElement;

@@ -15,17 +15,43 @@ body {
     padding: 0.6em;
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    gap: 0.75em;
 }
 
-#theme-toggle {
+#header > div:first-child {
+    margin-right: auto;
+}
+
+#theme-toggle, #theme-reset {
     cursor: pointer;
     border: none;
     margin: 0;
     padding: 0;
-    background-color: transparent;
+    background-color: var(--bg);
     font-size: 1em;
     height: 1.2em;
+    font-family: monospace;
+}
+
+#theme-toggle {
+    z-index: 2;
+}
+
+#theme-reset {
+    transform: translateX(2em) scale(0.5) rotate(45deg);
+    will-change: transform;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#header:hover #theme-reset,
+#theme-reset:focus,
+#theme-reset:has(+ #theme-toggle:focus) {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: all;
 }
 
 #panels {

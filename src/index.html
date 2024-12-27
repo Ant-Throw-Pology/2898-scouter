@@ -31,29 +31,34 @@
                 return 'light';
             }
             let theme = getInitialColorMode();
-            document.write(`<style id="theme-style">
-    :root {
-        --color: ${theme == "light" ? "#111" : "#eee"};
-        --bg: ${theme == "light" ? "#eee" : "#111"};
-    }
-</style>`);
+            document.documentElement.style.setProperty("--color", theme == "light" ? "#111" : "#eee");
+            document.documentElement.style.setProperty("--bg", theme == "light" ? "#eee" : "#111");
         </script>
         <link rel="stylesheet" href="index.css">
     </head>
     <body>
         <div id="header">
             <div>2898 Scouter</div>
-            <button id="theme-toggle"></button>
+            <button id="theme-reset" title="Device default theme">💻</button>
+            <button id="theme-toggle" title="Toggle theme (currently light)"></button>
             <script>
                 document.getElementById("theme-toggle").innerText = theme == "light" ? "☀" : "🌙";
+                document.getElementById("theme-toggle").title = `Toggle theme (currently ${theme})`;
                 document.getElementById("theme-toggle").addEventListener("click", function() {
                     theme = {light: "dark", dark: "light"}[theme];
-                    document.getElementById("theme-style").innerHTML = `:root {
-    --color: ${theme == "light" ? "#111" : "#eee"};
-    --bg: ${theme == "light" ? "#eee" : "#111"};
-}`;
+                    document.documentElement.style.setProperty("--color", theme == "light" ? "#111" : "#eee");
+                    document.documentElement.style.setProperty("--bg", theme == "light" ? "#eee" : "#111");
                     this.innerText = theme == "light" ? "☀" : "🌙";
+                    this.title = `Toggle theme (currently ${theme})`;
                     localStorage.setItem("color-mode", theme);
+                });
+                document.getElementById("theme-reset").addEventListener("click", function() {
+                    localStorage.removeItem("color-mode");
+                    theme = getInitialColorMode();
+                    document.documentElement.style.setProperty("--color", theme == "light" ? "#111" : "#eee");
+                    document.documentElement.style.setProperty("--bg", theme == "light" ? "#eee" : "#111");
+                    document.getElementById("theme-toggle").innerText = theme == "light" ? "☀" : "🌙";
+                    document.getElementById("theme-toggle").title = `Toggle theme (currently ${theme})`;
                 });
             </script>
         </div>
@@ -72,7 +77,7 @@
                 <button id="onboarding-1-continue">Next</button>
             </div>
             <div id="panel-onboarding-2" class="panel" inert style="opacity: 0">
-                <button for="onboarding-storage-folder">Open Folder</button>
+                <button id="onboarding-storage-folder">Open Folder</button>
                 <span>(Requires support for the File System Access API)</span>
                 <hr>
                 <label for="onboarding-storage-local-item">Select Local Storage Key</label>
@@ -80,6 +85,7 @@
                 <datalist id="onboarding-storage-local-items"></datalist>
                 <button id="onboarding-2-continue">Next</button>
             </div>
+            <div id="panel-configuration" class="panel" inert style="opacity: 0"></div>
             <div id="panel-teams" class="panel" inert style="opacity: 0">
                 <h2>Teams</h2>
             </div>
