@@ -43,7 +43,7 @@
     <body>
         <div id="header">
             <div>2898 Scouter</div>
-            <div id="theme-toggle"></div>
+            <button id="theme-toggle"></button>
             <script>
                 document.getElementById("theme-toggle").innerText = theme == "light" ? "☀" : "🌙";
                 document.getElementById("theme-toggle").addEventListener("click", function() {
@@ -57,19 +57,39 @@
                 });
             </script>
         </div>
-        <div id="scouter-id">
-            <h1>Welcome to 2898 Scouter</h1>
-            <input type="text" placeholder="Your name" id="s-name"><br>
-            <label for="scouter-role">Your scouting role:</label>
-            <select id="scouter-role" value="stand">
-                <option value="stand">Stand scouter</option>
-                <option value="pit">Pit scouter</option>
-            </select>
-            <br>
-            <button id="sid-continue">Continue</button>
-        </div>
-        <div id="welcome">
-            <h2 id="user-greeting"></h2>
+        <div id="panels">
+            <div id="panel-onboarding-1" class="panel">
+                <h1>Welcome to 2898 Scouter</h1>
+                <label for="onboarding-name">Name</label>
+                <input type="text" name="onboarding-name" id="onboarding-name" autocomplete="given-name">
+                <br>
+                <span>Scouting Role</span>
+                <span id="onboarding-role-c">
+                    <input type="radio" name="onboarding-role" id="onboarding-role-stands"><label for="onboarding-role-stands">Stands</label>
+                    <input type="radio" name="onboarding-role" id="onboarding-role-pits"><label for="onboarding-role-pits">Pits</label>
+                </span>
+                <br>
+                <button id="onboarding-1-continue">Next</button>
+            </div>
+            <div id="panel-onboarding-2" class="panel" inert style="opacity: 0">
+                <button for="onboarding-storage-folder">Open Folder</button>
+                <span>(Requires support for the File System Access API)</span>
+                <hr>
+                <label for="onboarding-storage-local-item">Select Local Storage Key</label>
+                <input type="text" name="onboarding-storage-local-item" id="onboarding-storage-local-item" list="onboarding-storage-local-items">
+                <datalist id="onboarding-storage-local-items"></datalist>
+                <button id="onboarding-2-continue">Next</button>
+            </div>
+            <div id="panel-teams" class="panel" inert style="opacity: 0">
+                <h2>Teams</h2>
+            </div>
+            <div id="panel-scout" class="panel" inert style="opacity: 0">
+                <div>
+                    <span id="scout-team-number"></span>
+                    <span id="scout-team-name"></span>
+                    <span id="scout-team-location"></span>
+                </div>
+            </div>
         </div>
         <script src="index.js"></script>
     </body>

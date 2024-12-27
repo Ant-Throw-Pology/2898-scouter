@@ -4,5 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "bun build src/index.ts --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
+  },
+  "dependencies": {
+    "html5-qrcode": "^2.3.8"
   }
 }

@@ -2,26 +2,40 @@ import "./index.html" with {type: "asset"};
 import "./index.css" with {type: "asset"};
 import { ce } from "./utils";
 
-document.getElementById("sid-continue")!.addEventListener("click", async () => {
-    let role = (document.getElementById("scouter-role") as HTMLSelectElement).value;
-    if (role === "pit") {
-        alert("Pit scouter mode is currently unavailable.");
-    }
+let currentPanel = "onboarding-1";
 
-    else {
-        await sleep(2);
-        alert("You have entered stand scouting mode! This should do something (soon).");
+async function switchToPanel(panel: string) {
+    const el1 = document.getElementById("panel-" + currentPanel)!;
+    const el2 = document.getElementById("panel-" + panel)!;
+    await el1.animate([
+        {opacity: 0}
+    ], {duration: 150, easing: "ease", fill: "both"}).finished;
+    el1.inert = true;
+    el2.inert = false;
+    currentPanel = panel;
+    await el2.animate([
+        {opacity: 1}
+    ], {duration: 150, easing: "ease", fill: "both"}).finished;
+}
+
+document.getElementById("onboarding-1-continue")!.addEventListener("click", async () => {
+    const name = (document.getElementById("onboarding-name") as HTMLInputElement).value;
+    if (!name) {
+        document.getElementById("onboarding-name")!.animate([
+            {backgroundColor: "#f00", color: "#f00"},
+            {},
+        ], {
+            duration: 300,
+        });
     }
+    const role = Array.from(document.querySelectorAll<HTMLInputElement>("input[name=onboarding-role]")).find(el => el.checked)?.value;
+    if (!role) {
+        document.getElementById("onboarding-role-c")!.animate([
+            {backgroundColor: "#f00", color: "#f00"},
+            {},
+        ], {
+            duration: 300,
+        });
+    }
+    await switchToPanel("onboarding-2");
 });
-
-function sleep(sec: number) {
-    let ms = sec * 1000;
-    return new Promise(res => setTimeout(res, ms));
-}
-
-function greetUser(){
-    let greeting = (document.getElementById("user-greeting") as HTMLHeadingElement).innerText;
-    let name = (document.getElementById("s-name") as HTMLInputElement).value;
-    let first_name = name.split(" ")[0];
-    greeting = `Welcome. ${first_name}`;
-}
