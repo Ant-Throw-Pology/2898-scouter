@@ -590,6 +590,46 @@ document.getElementById("entries-back")!.addEventListener("click", async () => {
     await switchToPanel("teams");
 });
 
+function makeAbilityFieldset(items: string[], idPrefix: string, element: HTMLElement) {
+    for (const item of items) {
+        const index = item.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
+        const id = idPrefix + index;
+        element.appendChild(ce({
+            name: "fieldset",
+            dataset: {item, index},
+            content: [
+                {name: "legend", content: item},
+                ...[
+                    "Consistently",
+                    "Generally",
+                    "Rarely",
+                    "Never"
+                ].flatMap((v, i) => {
+                    const value = v.toLowerCase();
+                    const name = `${id}-${value}`;
+                    return [
+                        ...(i > 0 ? [{name: "br" as "br"}] : []),
+                        {
+                            name: "input",
+                            id: name,
+                            attrs: {
+                                type: "radio",
+                                name,
+                                value
+                            }
+                        },
+                        {
+                            name: "label",
+                            htmlFor: name,
+                            content: v
+                        }
+                    ] satisfies CEOptions[]
+                })
+            ]
+        }));
+    }
+}
+
 document.getElementById("panel-scout-stands")!.addEventListener("transitionedto", (event) => {
     const team = (event as CustomEvent<Team>).detail;
     if (!configuration) return;
@@ -614,84 +654,12 @@ document.getElementById("panel-scout-stands")!.addEventListener("transitionedto"
     if (configuration.scoring.length > 0) {
         secScoring.appendChild(ce({name: "h2", content: "Scoring"}));
         secScoring.style.removeProperty("display");
-        for (const item of configuration.scoring) {
-            const index = item.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
-            const id = `scout-stands-scoring-${index}`;
-            secScoring.appendChild(ce({
-                name: "fieldset",
-                dataset: {item, index},
-                content: [
-                    {name: "legend", content: item},
-                    ...[
-                        "Consistently",
-                        "Generally",
-                        "Rarely",
-                        "Never"
-                    ].flatMap((v, i) => {
-                        const value = v.toLowerCase();
-                        const name = `${id}-${value}`;
-                        return [
-                            ...(i > 0 ? [{name: "br" as "br"}] : []),
-                            {
-                                name: "input",
-                                id: name,
-                                attrs: {
-                                    type: "radio",
-                                    name,
-                                    value
-                                }
-                            },
-                            {
-                                name: "label",
-                                htmlFor: name,
-                                content: v
-                            }
-                        ] satisfies CEOptions[]
-                    })
-                ]
-            }));
-        }
+        makeAbilityFieldset(configuration.scoring, "scout-stands-scoring-", secScoring);
     } else secScoring.style.display = "none";
     if (configuration.mobility.length > 0) {
         secMobility.appendChild(ce({name: "h2", content: "Mobility"}));
         secMobility.style.removeProperty("display");
-        for (const item of configuration.mobility) {
-            const index = item.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
-            const id = `scout-stands-mobility-${index}`;
-            secMobility.appendChild(ce({
-                name: "fieldset",
-                dataset: {item, index},
-                content: [
-                    {name: "legend", content: item},
-                    ...[
-                        "Consistently",
-                        "Generally",
-                        "Rarely",
-                        "Never"
-                    ].flatMap((v, i) => {
-                        const value = v.toLowerCase();
-                        const name = `${id}-${value}`;
-                        return [
-                            ...(i > 0 ? [{name: "br" as "br"}] : []),
-                            {
-                                name: "input",
-                                id: name,
-                                attrs: {
-                                    type: "radio",
-                                    name,
-                                    value
-                                }
-                            },
-                            {
-                                name: "label",
-                                htmlFor: name,
-                                content: v
-                            }
-                        ] satisfies CEOptions[]
-                    })
-                ]
-            }));
-        }
+        makeAbilityFieldset(configuration.mobility, "scout-stands-mobility-", secMobility);
     } else secMobility.style.display = "none";
     if (configuration.bonusBool.length + configuration.bonusScale.length > 0) {
         secBonus.appendChild(ce({name: "h2", content: "Bonus"}));
@@ -725,43 +693,7 @@ document.getElementById("panel-scout-stands")!.addEventListener("transitionedto"
                 })
             }));
         }
-        for (const item of configuration.bonusScale) {
-            const index = item.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
-            const id = `scout-stands-bonus-scale-${index}`;
-            secBonus.appendChild(ce({
-                name: "fieldset",
-                dataset: {item, index},
-                content: [
-                    {name: "legend", content: item},
-                    ...[
-                        "Consistently",
-                        "Generally",
-                        "Rarely",
-                        "Never"
-                    ].flatMap((v, i) => {
-                        const value = v.toLowerCase();
-                        const name = `${id}-${value}`;
-                        return [
-                            ...(i > 0 ? [{name: "br" as "br"}] : []),
-                            {
-                                name: "input",
-                                id: name,
-                                attrs: {
-                                    type: "radio",
-                                    name,
-                                    value
-                                }
-                            },
-                            {
-                                name: "label",
-                                htmlFor: name,
-                                content: v
-                            }
-                        ] satisfies CEOptions[]
-                    })
-                ]
-            }));
-        }
+        makeAbilityFieldset(configuration.bonusScale, "scout-stands-bonus-scale-", secBonus);
     } else secBonus.style.display = "none";
     // DIY Masonry layout
     const heights = new Map(
