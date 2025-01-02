@@ -64,36 +64,180 @@
         </div>
         <div id="panels">
             <div id="panel-onboarding-1" class="panel">
-                <h1>Welcome to 2898 Scouter</h1>
+                <h1>2898 Scouting App</h1>
                 <label for="onboarding-name">Name</label>
                 <input type="text" name="onboarding-name" id="onboarding-name" autocomplete="given-name">
                 <br>
                 <span>Scouting Role</span>
                 <span id="onboarding-role-c">
-                    <input type="radio" name="onboarding-role" id="onboarding-role-stands"><label for="onboarding-role-stands">Stands</label>
-                    <input type="radio" name="onboarding-role" id="onboarding-role-pits"><label for="onboarding-role-pits">Pits</label>
+                    <input type="radio" name="onboarding-role" id="onboarding-role-stands" value="stands">
+                    <label for="onboarding-role-stands">Stands</label>
+                    <input type="radio" name="onboarding-role" id="onboarding-role-pits" value="pits">
+                    <label for="onboarding-role-pits">Pits</label>
                 </span>
                 <br>
-                <button id="onboarding-1-continue">Next</button>
+                <button id="onboarding-1-next">Next</button>
             </div>
             <div id="panel-onboarding-2" class="panel" inert style="opacity: 0">
+                <h2>Select Storage Location</h2>
                 <button id="onboarding-storage-folder">Open Folder</button>
                 <span>(Requires support for the File System Access API)</span>
                 <hr>
                 <label for="onboarding-storage-local-item">Select Local Storage Key</label>
                 <input type="text" name="onboarding-storage-local-item" id="onboarding-storage-local-item" list="onboarding-storage-local-items">
                 <datalist id="onboarding-storage-local-items"></datalist>
-                <button id="onboarding-2-continue">Next</button>
+                <button id="onboarding-2-next">Next</button>
             </div>
-            <div id="panel-configuration" class="panel" inert style="opacity: 0"></div>
-            <div id="panel-teams" class="panel" inert style="opacity: 0">
-                <h2>Teams</h2>
+            <div id="panel-configuration" class="panel" inert style="opacity: 0">
+                <h2>Select Configuration</h2>
+                <div id="config-presets">
+                    <input type="radio" name="config-preset" id="preset-frc-2024-crescendo" value="{}" checked>
+                    <label for="preset-frc-2024-crescendo">FRC 2024: Crescendo</label>
+                    <input type="radio" name="config-preset" id="preset-bunnybots-2024-balloon-a-palooza" value="{}">
+                    <label for="preset-bunnybots-2024-balloon-a-palooza">Bunnybots 2024: Balloon-a-Palooza</label>
+                </div>
+                <button id="config-create">Make one</button>
+                <br>
+                <label for="config-teams">Paste Teams List</label>
+                <textarea name="config-teams" id="config-teams"></textarea>
+                <p>View events and their team lists at <a href="https://frc-events.firstinspires.org/" target="_blank">https://frc-events.firstinspires.org/</a>.</p>
+                <div id="config-teams-display">
+                    <p style="color: color-mix(in srgb, var(--bg), var(--color) 60%); font-style: italic;">teams are shown here after pasting</p>
+                </div>
+                <br>
+                <button id="config-next">Next</button>
             </div>
-            <div id="panel-scout" class="panel" inert style="opacity: 0">
+            <div id="panel-create-configuration" class="panel" inert style="opacity: 0">
+                <h2>Create Configuration</h2>
+                <label for="create-competition">Competition</label>
+                <input type="text" name="create-competition" id="create-competition">
+                <div class="create-targets-input">
+                    <span>Score targets</span>
+                    <span>type an item, press Enter to add</span>
+                    <div id="create-score-targets-c">
+                        <span contenteditable="plaintext-only" id="create-score-targets">&#10;</span>
+                    </div>
+                </div>
+                <div class="create-targets-input">
+                    <span>Mobility <span style="font-size: 0.75em;">(where the robot can fit)</span></span>
+                    <span>type an item, press Enter to add</span>
+                    <div id="create-mobility-c">
+                        <span contenteditable="plaintext-only" id="create-mobility">&#10;</span>
+                    </div>
+                </div>
+                <div class="create-targets-input">
+                    <span>Bonus items (yes/no)</span>
+                    <span>type an item, press Enter to add</span>
+                    <div id="create-bonus-bool-c">
+                        <span contenteditable="plaintext-only" id="create-bonus-bool">&#10;</span>
+                    </div>
+                </div>
+                <div class="create-targets-input">
+                    <span>Bonus items (scale)</span>
+                    <span>type an item, press Enter to add</span>
+                    <div id="create-bonus-scale-c">
+                        <span contenteditable="plaintext-only" id="create-bonus-scale">&#10;</span>
+                    </div>
+                </div>
+                <br>
                 <div>
-                    <span id="scout-team-number"></span>
-                    <span id="scout-team-name"></span>
-                    <span id="scout-team-location"></span>
+                    <button id="create-cancel">Cancel</button>
+                    <button id="create-done">Done</button>
+                </div>
+            </div>
+            <div id="panel-teams" class="panel" inert style="opacity: 0">
+                <div>
+                    <button id="teams-back">Back</button>
+                    <button id="teams-change-config">Change Configuration</button>
+                </div>
+                <div id="teams-list"></div>
+                <div>
+                    <button id="teams-import-csv">Import CSV</button>
+                    <button id="teams-export-csv">Export CSV</button>
+                    <button id="teams-import-qr">Import QR</button>
+                    <button id="teams-export-qr">Export QR</button>
+                </div>
+            </div>
+            <div id="panel-team-entries" class="panel" inert style="opacity: 0">
+                <h2 id="entries-header">Entries for </h2>
+                <button id="entries-back">Back</button>
+                <div id="entries-list"></div>
+                <button id="entries-new" title="Scout this team">New</button>
+            </div>
+            <div id="panel-scout-stands" class="panel" inert style="opacity: 0">
+                <div id="scout-stands-team-info" class="scout-section">
+                    <span id="scout-stands-team-number"></span>
+                    <span id="scout-stands-team-name"></span>
+                    <span id="scout-stands-team-location"></span>
+                </div>
+                <div id="scout-stands-sec-match" class="scout-section">
+                    <h2>Match</h2>
+                    <div class="scout-row">
+                        <label for="scout-stands-match-number">Match Number</label>
+                        <input type="number" name="scout-stands-match-number" id="scout-stands-match-number" min="0" step="1">
+                    </div>
+                    <div class="scout-row">
+                        <label for="scout-stands-alliance-score">Alliance Score</label>
+                        <input type="number" name="scout-stands-alliance-score" id="scout-stands-alliance-score" min="0" step="1">
+                    </div>
+                    <div class="scout-checkboxes-row">
+                        <div>
+                            <input type="checkbox" name="scout-stands-won" id="scout-stands-won"><label for="scout-stands-won">Won</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" name="scout-stands-carried" id="scout-stands-carried"><label for="scout-stands-carried">Carried the alliance</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" name="scout-stands-were-carried" id="scout-stands-were-carried"><label for="scout-stands-were-carried">Were carried</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" name="scout-stands-a-stopped" id="scout-stands-a-stopped"><label for="scout-stands-a-stopped">A-stopped</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" name="scout-stands-e-stopped" id="scout-stands-e-stopped"><label for="scout-stands-e-stopped">E-stopped</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" name="scout-stands-died" id="scout-stands-died"><label for="scout-stands-died">Died</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="scout-stands-sec-driving" class="scout-section">
+                    <h2>Driving</h2>
+                    <div class="scout-row">
+                        <label for="scout-stands-defense-notes">Defense notes</label>
+                        <textarea name="scout-stands-defense-notes" id="scout-stands-defense-notes"></textarea>
+                    </div>
+                    <div class="scout-row">
+                        <label for="scout-stands-offense-notes">Offense notes</label>
+                        <textarea name="scout-stands-offense-notes" id="scout-stands-offense-notes"></textarea>
+                    </div>
+                    <div class="scout-row">
+                        <label for="scout-stands-drive-rating">Drive Rating (0-10)</label>
+                        <input type="number" name="scout-stands-drive-rating" id="scout-stands-drive-rating" min="0" max="10">
+                    </div>
+                    <div class="scout-row">
+                        <label for="scout-stands-cycle-time">Cycle time <span style="font-size: 0.6em;">(seconds, approx)</span></label>
+                        <input type="number" name="scout-stands-cycle-time" id="scout-stands-cycle-time" min="0">
+                    </div>
+                </div>
+                <div id="scout-stands-sec-scoring" class="scout-section">
+                    <h2>Scoring</h2>
+                </div>
+                <div id="scout-stands-sec-mobility" class="scout-section">
+                    <h2>Mobility</h2>
+                </div>
+                <div id="scout-stands-sec-bonus" class="scout-section">
+                    <h2>Bonus</h2>
+                </div>
+                <div id="scout-stands-footer" class="scout-section">
+                    <button>Save</button>
+                </div>
+            </div>
+            <div id="panel-scout-pits" class="panel" inert style="opacity: 0">
+                <div id="scout-pits-team-info">
+                    <span id="scout-pits-team-number"></span>
+                    <span id="scout-pits-team-name"></span>
+                    <span id="scout-pits-team-location"></span>
                 </div>
             </div>
         </div>
