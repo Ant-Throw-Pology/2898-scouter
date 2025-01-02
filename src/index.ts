@@ -593,7 +593,7 @@ document.getElementById("entries-back")!.addEventListener("click", async () => {
 function makeAbilityFieldset(items: string[], idPrefix: string, element: HTMLElement) {
     for (const item of items) {
         const index = item.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
-        const id = idPrefix + index;
+        const name = idPrefix + index;
         element.appendChild(ce({
             name: "fieldset",
             dataset: {item, index},
@@ -606,12 +606,12 @@ function makeAbilityFieldset(items: string[], idPrefix: string, element: HTMLEle
                     "Never"
                 ].flatMap((v, i) => {
                     const value = v.toLowerCase();
-                    const name = `${id}-${value}`;
+                    const id = `${name}-${value}`;
                     return [
                         ...(i > 0 ? [{name: "br" as "br"}] : []),
                         {
                             name: "input",
-                            id: name,
+                            id,
                             attrs: {
                                 type: "radio",
                                 name,
@@ -620,7 +620,7 @@ function makeAbilityFieldset(items: string[], idPrefix: string, element: HTMLEle
                         },
                         {
                             name: "label",
-                            htmlFor: name,
+                            htmlFor: id,
                             content: v
                         }
                     ] satisfies CEOptions[]
