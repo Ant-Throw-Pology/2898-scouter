@@ -3,9 +3,19 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build src/index.ts --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
+    "build": "bun build src/index.ts --target=browser --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
   },
   "dependencies": {
-    "html5-qrcode": "^2.3.8"
+    "@types/pako": "^2.0.3",
+    "color": "^4.2.3",
+    "html5-qrcode": "^2.3.8",
+    "pako": "^2.1.0",
+    "papaparse": "^5.5.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/color": "^4.2.0",
+    "@types/papaparse": "^5.3.15"
   }
 }

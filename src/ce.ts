@@ -1216,7 +1216,7 @@ interface BaseCEOptions {
     ref?: string;
     tag?: symbol;
     css?: { [x: string | symbol]: any; };
-    content?: CEOptions<keyof ElementConversions> | string | (string | CEOptions<keyof ElementConversions>)[];
+    content?: CEOptions<keyof ElementConversions> | string | (string | CEOptions<keyof ElementConversions> | Node)[];
 }
 /**
  * @template {keyof ElementConversions} T
@@ -1271,6 +1271,8 @@ export function ce<T extends keyof ElementConversions>(options: CEOptions<T>, re
             if (typeof v == "string") {
                 if (options.contentAsHTML) el.innerHTML += v;
                 else el.appendChild(document.createTextNode(v));
+            } else if (v instanceof Node) {
+                el.appendChild(v);
             } else {
                 //@ts-ignore
                 el.appendChild(ce(v, ref));

@@ -1,0 +1,27 @@
+<svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+    <linearGradient id="binside" gradientTransform="rotate(90)">
+        <stop offset="0%" stop-color="#080e4d" />
+        <stop offset="100%" stop-color="#000" />
+    </linearGradient>
+    <path d="
+        M20,50
+        L180,50
+        L175,90
+        L25,90
+        Z
+    " fill="#050e82" />
+    <path d="
+        M60,50
+        L140,50
+        L130,90
+        L70,90
+        Z
+    " fill="#06129f" />
+    <path d="
+        M30,10
+        L170,10
+        L180,50
+        L20,50
+        Z
+    " fill="url(#binside)" stroke="#0d1572" stroke-width="4" />
+</svg>
