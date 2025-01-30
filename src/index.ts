@@ -70,6 +70,10 @@ interface StandsScoutData extends BaseScoutData {
 
 type ScoutData = PitsScoutData | StandsScoutData;
 
+type TeamSpecificScoutData = ScoutData & {
+    team: string;
+};
+
 interface StorageData {
     config: Configuration;
     entries: {[x: string]: ScoutData[]}
@@ -195,6 +199,41 @@ function unFlattenObject(obj: {[x: string]: any}) {
 
 function getTeam(teamNumber: string) {
     return configuration?.teams.find(t => t.number === teamNumber);
+}
+
+function mean(arr: number[]) {
+    return arr.reduce((acc, val) => acc + val, 0) / arr.length;
+}
+
+function objectArrayValues<T extends {[x: string]: any}>(objs: T[]): {[k in keyof T]: T[k][]} {
+    const result: {[x: string]: any[]} = {};
+    for (const obj of objs) {
+        for (const [k, v] of Object.entries(obj)) {
+            result[k] ??= [];
+            result[k].push(v);
+        }
+    }
+    //@ts-ignore
+    return result;
+}
+
+function stringifyDate(date: Date | number) {
+    return (typeof date == "number" ? new Date(date) : date).toLocaleString(undefined, {
+        timeStyle: "long",
+        dateStyle: "medium"
+    });
+}
+
+function teamSort(a: string, b: string) {
+    const aNumber = parseInt(a, 10);
+    const aLetter = teamNumberRegex.exec(a)?.[2] || "";
+    const bNumber = parseInt(b, 10);
+    const bLetter = teamNumberRegex.exec(b)?.[2] || "";
+    if (aNumber == bNumber) {
+        if (aLetter < bLetter) return -1;
+        else if (bLetter < aLetter) return 1;
+        else return 0;
+    } else return aNumber - bNumber;
 }
 
 //#endregion
@@ -894,14 +933,8 @@ document.getElementById("panel-team-entries")!.addEventListener("transitionedto"
     for (const entry of entries[team.number].toSorted((a, b) => a.when - b.when)) {
         entriesList.appendChild(ce({name: "span", content: capitalizeFirst(entry.type)}));
         entriesList.appendChild(ce({name: "span", content: entry.by}));
-        entriesList.appendChild(ce({name: "span", content: new Date(entry.when).toLocaleString(undefined, {
-            timeStyle: "long",
-            dateStyle: "medium"
-        })}));
-        entriesList.appendChild(ce({name: "span", content: entry.type == "pits" && entry.willChange && new Date(entry.willChange).toLocaleString(undefined, {
-            timeStyle: "long",
-            dateStyle: "medium"
-        }) || "-"}));
+        entriesList.appendChild(ce({name: "span", content: stringifyDate(entry.when)}));
+        entriesList.appendChild(ce({name: "span", content: entry.type == "pits" && entry.willChange && stringifyDate(entry.willChange) || "-"}));
         const blinkDuration = 8 + Math.random() * 18;
         entriesList.appendChild(ce({
             name: "span",
@@ -1045,10 +1078,7 @@ document.getElementById("panel-view-stands")!.addEventListener("transitionedto",
     const {team, entry} = (event as CustomEvent<{team: Team, entry: StandsScoutData}>).detail;
     if (!configuration) return;
     document.getElementById("view-stands-header-1")!.innerText = `Entry by ${entry.by}`;
-    document.getElementById("view-stands-header-2")!.innerText = `at ${new Date(entry.when).toLocaleString(undefined, {
-        timeStyle: "long",
-        dateStyle: "medium"
-    })}`;
+    document.getElementById("view-stands-header-2")!.innerText = `at ${stringifyDate(entry.when)}`;
     document.getElementById("view-stands-header-3")!.innerText = `for ${team.number}: ${team.name}`;
     document.getElementById("view-stands-match-number")!.innerText = String(entry.matchNumber);
     document.getElementById("view-stands-match-type")!.innerText = capitalizeFirst(entry.matchType);
@@ -1163,19 +1193,13 @@ document.getElementById("panel-view-pits")!.addEventListener("transitionedto", f
     const {team, entry} = (event as CustomEvent<{team: Team, entry: PitsScoutData}>).detail;
     if (!configuration) return;
     document.getElementById("view-pits-header-1")!.innerText = `Entry by ${entry.by}`;
-    document.getElementById("view-pits-header-2")!.innerText = `at ${new Date(entry.when).toLocaleString(undefined, {
-        timeStyle: "long",
-        dateStyle: "medium"
-    })}`;
+    document.getElementById("view-pits-header-2")!.innerText = `at ${stringifyDate(entry.when)}`;
     document.getElementById("view-pits-header-3")!.innerText = `for ${team.number}: ${team.name}`;
     document.getElementById("view-pits-drivetrain")!.innerText = entry.drivetrain;
     document.getElementById("view-pits-leds")!.innerText = entry.leds;
     document.getElementById("view-pits-cycle-time")!.innerText = String(entry.cycleTime);
     document.getElementById("view-pits-will-change")!.dataset.checked = String(entry.willChange);
-    document.getElementById("view-pits-will-change-at")!.innerText = entry.willChange && new Date(entry.willChange).toLocaleString(undefined, {
-        timeStyle: "long",
-        dateStyle: "medium"
-    }) || "";
+    document.getElementById("view-pits-will-change-at")!.innerText = entry.willChange && stringifyDate(entry.willChange) || "";
     const secScoring = document.getElementById("view-pits-sec-scoring")!;
     const secMobility = document.getElementById("view-pits-sec-mobility")!;
     const secOther = document.getElementById("view-pits-sec-other")!;
@@ -1695,12 +1719,147 @@ document.getElementById("import-csv-open")!.addEventListener("click", () => {
 
 //#region Panel: Export CSV
 
+const frequencyMap: {[x: string]: number} = {
+    never: 0,
+    rarely: 1,
+    generally: 2,
+    consistently: 3
+};
+
+const frequencyMapReverse = [
+    "never",
+    "rarely",
+    "generally",
+    "consistently"
+];
+
+const mobilityMap: {[x: string]: number} = {
+    never: 0,
+    sometimes: 1,
+    always: 2
+};
+
+const mobilityMapReverse = [
+    "never",
+    "sometimes",
+    "always"
+];
+
+function sortEntries(a: TeamSpecificScoutData, b: TeamSpecificScoutData) {
+    const teamSorted = teamSort(a.team, b.team);
+    if (teamSorted !== 0) return teamSorted;
+    return a.when - b.when;
+}
+
+const exportFilters: {[x: string]: (data: TeamSpecificScoutData[]) => TeamSpecificScoutData[]} = {
+    allEntries(data) {
+        const {pits: pitsEntries, stands: standsEntries} = Object.groupBy(data, e => e.type);
+        return (pitsEntries || []).sort(sortEntries).concat((standsEntries || []).sort(sortEntries));
+    },
+    allPits(data) {
+        return data.filter(e => e.type == "pits").sort(sortEntries);
+    },
+    allStands(data) {
+        return data.filter(e => e.type == "stands").sort(sortEntries);
+    },
+    latestPits(data) {
+        const pitsEntries = data.filter(e => e.type == "pits");
+        const entriesMap: {[team: string]: PitsScoutData & {team: string}} = {};
+        for (const e of pitsEntries) {
+            if (entriesMap[e.team]) {
+                if (entriesMap[e.team].when < e.when) entriesMap[e.team] = e;
+            } else entriesMap[e.team] = e;
+        }
+        return Object.values(entriesMap);
+    },
+    latestStands(data) {
+        const standsEntries = data.filter(e => e.type == "stands");
+        const entriesMap: {[team: string]: StandsScoutData & {team: string}} = {};
+        for (const e of standsEntries) {
+            if (entriesMap[e.team]) {
+                if (entriesMap[e.team].when < e.when) entriesMap[e.team] = e;
+            } else entriesMap[e.team] = e;
+        }
+        return Object.values(entriesMap);
+    },
+    standsAggregation(data) {
+        const standsEntries = data.filter(e => e.type == "stands");
+        const entriesMap: {[team: string]: (StandsScoutData & {team: string})[]} = {};
+        for (const e of standsEntries) {
+            entriesMap[e.team] ??= [];
+            entriesMap[e.team].push(e);
+        }
+        return Object.entries(entriesMap).map(([team, entries]) => {
+            const by = entries.map(e => e.by).filter((val, idx, arr) => arr.indexOf(val) === idx);
+            const matchNumbers = entries.map(e => e.matchNumber).filter((val, idx, arr) => arr.indexOf(val) === idx);
+            const matchTypes = entries.map(e => e.matchType).filter((val, idx, arr) => arr.indexOf(val) === idx);
+            return {
+                by: by.length == 1 ? by[0] : by.length == 0 ? "(none)" : "(various)",
+                type: "stands",
+                when: Math.max(...entries.map(e => e.when)),
+                team,
+                matchNumber: matchNumbers.length == 1 ? matchNumbers[0] : matchNumbers.length == 0 ? -2 : -1,
+                matchType: matchTypes.length == 1 ? matchTypes[0] : matchTypes.length == 0 ? "(none)" : "(various)",
+                allianceScore: mean(entries.map(e => e.allianceScore)),
+                defenseNotes: entries.map(e => e.defenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.defenseNotes}` : undefined).filter(v => v).join("\n\n"),
+                offenseNotes: entries.map(e => e.offenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.offenseNotes}` : undefined).filter(v => v).join("\n\n"),
+                droppedItems: Boolean(Math.round(mean(entries.map(e => e.droppedItems).map(v => +v)))),
+                aStop: Boolean(Math.round(mean(entries.map(e => e.aStop).map(v => +v)))),
+                eStop: Boolean(Math.round(mean(entries.map(e => e.eStop).map(v => +v)))),
+                died: Boolean(Math.round(mean(entries.map(e => e.died).map(v => +v)))),
+                won: Boolean(Math.round(mean(entries.map(e => e.won).map(v => +v)))),
+                carried: Boolean(Math.round(mean(entries.map(e => e.carried).map(v => +v)))),
+                wereCarried: Boolean(Math.round(mean(entries.map(e => e.wereCarried).map(v => +v)))),
+                cycleTime: mean(entries.map(e => e.cycleTime)),
+                driveRating: mean(entries.map(e => e.driveRating)),
+                scoring: Object.fromEntries(
+                    Object.entries(objectArrayValues(entries.map(e => e.scoring)))
+                        .map(([key, values]) =>
+                            [
+                                key,
+                                frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
+                            ] as [string, string]
+                        )
+                ),
+                mobility: Object.fromEntries(
+                    Object.entries(objectArrayValues(entries.map(e => e.mobility)))
+                        .map(([key, values]) =>
+                            [
+                                key,
+                                mobilityMapReverse[Math.round(mean(values.map(v => mobilityMap[v] || 0)))]
+                            ] as [string, string]
+                        )
+                ),
+                otherBool: Object.fromEntries(
+                    Object.entries(objectArrayValues(entries.map(e => e.otherBool)))
+                        .map(([key, values]) =>
+                            [
+                                key,
+                                !!Math.round(mean(values.map(v => +v)))
+                            ] as [string, boolean]
+                        )
+                ),
+                otherScale: Object.fromEntries(
+                    Object.entries(objectArrayValues(entries.map(e => e.otherScale)))
+                        .map(([key, values]) =>
+                            [
+                                key,
+                                frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
+                            ] as [string, string]
+                        )
+                )
+            } satisfies StandsScoutData & {team: string};
+        })
+    }
+};
+
 async function exportCsv(
     progressBar: HTMLProgressElement = document.getElementById("export-csv-progress") as HTMLProgressElement,
     status: HTMLElement = document.getElementById("export-csv-status")!
 ) {
     if (!configuration) throw new Error();
-    const data = Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k}))).map(e => flattenObject(e));
+    const filter = exportFilters[(document.getElementById("export-csv-filter") as HTMLInputElement).value] || (data => data);
+    const data = filter(Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k})))).map(e => flattenObject(e));
     const columns = [
         "by",
         "when",
@@ -1752,7 +1911,6 @@ async function exportCsv(
         status.innerText = `${i} of ${data.length} rows done`;
         await new Promise((resolve) => setTimeout(resolve));
     }
-    console.log(i, data.length, strings.length, new Set(strings.join("")));
     const timeEnd = performance.now();
     const blob = new Blob(strings, {type: "text/plain"});
     status.innerText = `Exported ${data.length} rows (${blob.size} bytes) in ${(timeEnd - timeStart).toFixed(1)}ms`;

@@ -87,7 +87,6 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    text-align: center;
     gap: 0.5em;
 }
 
@@ -196,7 +195,7 @@ input[type=radio] {
     appearance: none;
     width: 1em;
     height: 1em;
-    display: inline;
+    display: inline-block;
     vertical-align: text-top;
 }
 
@@ -252,10 +251,6 @@ input[type=radio]:checked {
 
 #config-teams-display table {
     width: 100%;
-}
-
-#config-teams-display td {
-    /* text-align: center; */
 }
 
 .create-targets-input {
@@ -577,6 +572,7 @@ input[type=radio]:checked {
 
 #panel-export-qr {
     padding: 0.5em 2em;
+    text-align: center;
 }
 
 #export-qr-images {
