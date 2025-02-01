@@ -95,6 +95,7 @@
                 <h2>Select Storage Location</h2>
                 <button id="onboarding-storage-folder">Open Folder</button>
                 <span style="text-align: center; text-wrap: balance;">(Requires support for the File System Access API)</span>
+                <span id="onboarding-2-folder-unsupported" style="text-align: center; text-wrap: balance; color: red;" class="hidden">(which you don't have)</span>
                 <hr>
                 <label for="onboarding-storage-local-item">Select Local Storage Key</label>
                 <input type="text" name="onboarding-storage-local-item" id="onboarding-storage-local-item" list="onboarding-storage-local-items">
@@ -162,11 +163,11 @@
                 </div>
             </div>
             <div id="panel-teams" class="panel" inert style="opacity: 0">
-                <div>
+                <div class="teams-button-row">
                     <button id="teams-back">Back</button>
                 </div>
                 <div id="teams-list"></div>
-                <div>
+                <div class="teams-button-row">
                     <button id="teams-import-csv">Import CSV</button>
                     <button id="teams-export-csv">Export CSV</button>
                     <button id="teams-import-qr">Import QR</button>

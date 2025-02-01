@@ -401,6 +401,10 @@ document.getElementById("panel-onboarding-2")!.addEventListener("transitionedto"
 
 document.getElementById("onboarding-storage-folder")!.addEventListener("click", async () => {
     try {
+        if (typeof window.showDirectoryPicker != "function") {
+            document.getElementById("onboarding-2-folder-unsupported")!.classList.remove("hidden");
+            return;
+        }
         directory = await window.showDirectoryPicker({
             id: "event-data-location"
         });

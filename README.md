@@ -1,7 +1,11 @@
 # 2898 Scouting App
 > We are not affiliated with FIRST or FRC. **You** are responsible for following all rules when using this program. The developers of this program are **NOT** responsible for any rules broken during use of this program.
 
-A scouting app written in HTML, CSS, and TypeScript by members of FRC team 2898. Currently only available as a webpage. An install is available which will install the app to your computer. [Try the app here!](https://ant-throw-pology.github.io/2898-scouter/) [Try the installer here!](https://github.com/droid-kk11/2898-scouter-installer)
+A scouting app written in HTML, CSS, and TypeScript by members of FRC team 2898.
+
+Try the app here: https://ant-throw-pology.github.io/2898-scouter
+
+An installer is available which will install the app to your computer: https://github.com/droid-kk11/2898-scouter-installer
 
 ## Contributing
 

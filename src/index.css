@@ -94,8 +94,9 @@ body {
     width: min(80dvw, 50ch);
 }
 
-p {
+p, h1, h2, h3 {
     text-wrap: balance;
+    text-align: center;
 }
 
 img {
@@ -155,6 +156,7 @@ input[type=text], textarea, input[type*=time], input[type=number], select, .view
     color: inherit;
     font: inherit;
     padding: 0.3em 0.5em;
+    min-height: 1em;
 }
 
 select {
@@ -209,6 +211,17 @@ input[type=radio]:checked {
     flex-wrap: wrap;
     justify-content: center;
     gap: 1em;
+    max-height: max(7.5em, 25svh);
+    overflow-y: scroll;
+    align-self: center;
+    position: relative;
+    margin-inline: max(0.5em, 10%);
+    border-radius: 0.3em;
+}
+
+#config-presets:has(:focus-visible) {
+    outline: 1px solid #fff;
+    outline-offset: 2px;
 }
 
 #config-presets input {
@@ -227,14 +240,12 @@ input[type=radio]:checked {
     display: inline-block;
     text-align: center;
     align-content: center;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    will-change: transform;
+    transition: background-color 0.2s ease;
 }
 
 #config-presets input + label:hover,
 #config-presets input:focus-visible + label {
     background-color: color-mix(in srgb, var(--bg) 90%, var(--color));
-    transform: scale(1.05);
 }
 
 #config-presets input:checked + label {
@@ -242,7 +253,7 @@ input[type=radio]:checked {
 }
 
 #config-teams-display {
-    max-height: 15em;
+    max-height: max(12em, 25svh);
     overflow-y: scroll;
     border: 1px solid var(--color);
     width: min(80dvw, 80ch);
@@ -251,6 +262,14 @@ input[type=radio]:checked {
 
 #config-teams-display table {
     width: 100%;
+}
+
+#config-teams-display tr:nth-child(even) {
+    background-color: color-mix(in srgb, var(--color) 5%, transparent);
+}
+
+#config-teams-display td {
+    text-wrap: balance;
 }
 
 .create-targets-input {
@@ -326,10 +345,10 @@ input[type=radio]:checked {
 
 #teams-list {
     flex-grow: 1;
-    overflow-y: scroll;
+    overflow: scroll;
     width: min(80dvw, 80ch);
     display: grid;
-    grid-template-columns: min-content auto max-content auto max-content;
+    grid-template-columns: min-content minmax(max-content, auto) max-content minmax(max-content, auto) max-content;
     align-content: start;
 }
 
@@ -370,7 +389,7 @@ input[type=radio]:checked {
     z-index: 2;
 }
 
-.teams-list-row-bg:nth-child(even of .teams-list-row-bg) {
+.teams-list-row-bg:nth-child(odd of .teams-list-row-bg) {
     background-color: color-mix(in srgb, var(--color) 5%, transparent);
 }
 
@@ -379,6 +398,14 @@ input[type=radio]:checked {
     outline: none;
     background-color: color-mix(in srgb, var(--color) 30%, transparent) !important;
     transition: background-color 0.02s ease;
+}
+
+.teams-button-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2em;
 }
 
 #teams-remove-data {
