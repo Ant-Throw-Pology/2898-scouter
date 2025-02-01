@@ -5,7 +5,7 @@ A scouting app written in HTML, CSS, and TypeScript by members of FRC team 2898.
 
 Try the app here: https://ant-throw-pology.github.io/2898-scouter
 
-An installer is available which will install the app to your computer: https://github.com/droid-kk11/2898-scouter-installer
+An installer is available (for Linux, macOS, Windows, Crostini/ChromeOS Linux Mode) which will install the app to your computer: https://github.com/droid-kk11/2898-scouter-installer
 
 ## Contributing
 
