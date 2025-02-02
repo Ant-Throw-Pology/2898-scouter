@@ -34,3 +34,12 @@ This must be run every time you make a change. If you want `bun` to continuously
 ```bash
 bun run build --watch
 ```
+
+### Adding an asset
+
+* [ ] Add the asset under the `src` directory
+* [ ] Import the asset in `index.ts`:
+    ```ts
+    import "./asset.png" with {type: "asset"};
+    ```
+* [ ] Add the asset to the list of cached resources in `serviceworker.ts`

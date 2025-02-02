@@ -2,6 +2,11 @@ import "./index.html" with {type: "asset"};
 import "./index.css" with {type: "asset"};
 import "./favicon.svg" with {type: "asset"};
 import "./bin.svg" with {type: "asset"};
+import "./manifest.webmanifest" with {type: "asset"};
+import "./favicon-512.png" with {type: "asset"};
+import "./favicon-192.png" with {type: "asset"};
+import "./screenshots/initial.png" with {type: "asset"};
+import "./screenshots/initial-mobile.png" with {type: "asset"};
 import { ce, makeid, type CEOptions } from "./ce";
 import { Html5Qrcode } from "html5-qrcode";
 import { toDataURL } from "qrcode";
@@ -83,6 +88,9 @@ interface StorageData {
 
 const teamNumberRegex = /^\d+\w*$/;
 const teamNumberNameRegex = /^(?<number>\d+\w*) (?<name>.*)$/;
+
+// I may have other things I want to host on subpaths under my GitHub Pages site that use localStorage, so I'm doing this to isolate them somewhat.
+const STORAGE_PREFIX = "scouter:";
 
 let currentPanel = "onboarding-1";
 let scouterName: string | undefined;
@@ -382,19 +390,27 @@ document.getElementById("onboarding-1-next")!.addEventListener("click", async ()
 //#region Panel: Onboarding 2
 
 document.getElementById("panel-onboarding-2")!.addEventListener("transitionedto", () => {
-    const entries = Object.entries(localStorage).filter(([k, v]) => {
+    const entries = Object.entries(localStorage).map(([k, v]) => {
         try {
-            return k !== "color-mode" && checkStorageData(JSON.parse(v));
-        } catch (e) {
-            return false;
-        }
-    });
+            const isData = checkStorageData(JSON.parse(v));
+            const isPrefixed = k.startsWith(STORAGE_PREFIX);
+            if (!isPrefixed && isData) {
+                const newKey = STORAGE_PREFIX + k;
+                console.log(`Renaming key '${k}' to '${newKey}'`);
+                localStorage.setItem(newKey, v);
+                localStorage.removeItem(k);
+                return [newKey, v] as [string, StorageData];
+            }
+            if (isPrefixed && isData) return [k, v] as [string, StorageData];
+        } catch (e) {}
+        return undefined;
+    }).filter(e => typeof e != "undefined");
     const el = document.getElementById("onboarding-storage-local-items") as HTMLDataListElement;
     el.childNodes.forEach(n => n.remove());
     for (const [key] of entries) {
         el.appendChild(ce({
             name: "option",
-            content: key
+            content: key.replace(STORAGE_PREFIX, "")
         }));
     }
 });
@@ -451,10 +467,10 @@ document.getElementById("onboarding-2-next")!.addEventListener("click", async ()
         pulseColor(document.getElementById("onboarding-storage-local-item")!, "#f00");
         return;
     }
-    storageKey = key;
+    storageKey = STORAGE_PREFIX + key;
     let data: unknown;
     try {
-        data = JSON.parse(localStorage.getItem(key) || "");
+        data = JSON.parse(localStorage.getItem(storageKey) || "");
     } catch (e) {}
     if (checkStorageData(data)) {
         storageData = data;
@@ -822,6 +838,10 @@ document.getElementById("panel-teams")!.addEventListener("transitionedto", () =>
     else document.getElementById("teams-remove-data")!.style.display = "none";
 });
 
+document.getElementById("teams-skip-list")!.addEventListener("click", () => {
+    document.getElementById("teams-import-csv")!.focus();
+});
+
 document.getElementById("teams-back")!.addEventListener("click", async () => {
     await switchToPanel("onboarding-2");
 });
@@ -844,8 +864,8 @@ document.getElementById("teams-export-qr")!.addEventListener("click", async () =
 
 let removeDataProgress = 0, removeDataThen = 0, removeDataHeld = new Set<string>(), removeDataCycleRunning = false;
 
-document.getElementById("teams-remove-data")!.addEventListener("mousedown", () => {
-    removeDataHeld.add("mouse");
+document.getElementById("teams-remove-data")!.addEventListener("pointerdown", (event) => {
+    removeDataHeld.add("pointer-" + event.pointerId);
     if (!removeDataCycleRunning) {
         removeDataThen = Date.now() * 0.001;
         requestAnimationFrame(removeDataCycle);
@@ -853,12 +873,18 @@ document.getElementById("teams-remove-data")!.addEventListener("mousedown", () =
     }
 });
 
-document.getElementById("teams-remove-data")!.addEventListener("mouseup", () => {
-    removeDataHeld.delete("mouse");
+document.getElementById("teams-remove-data")!.addEventListener("pointerup", (event) => {
+    removeDataHeld.delete("pointer-" + event.pointerId);
 });
 
-document.getElementById("teams-remove-data")!.addEventListener("mouseleave", () => {
-    removeDataHeld.delete("mouse");
+document.getElementById("teams-remove-data")!.addEventListener("pointerleave", (event) => {
+    removeDataHeld.delete("pointer-" + event.pointerId);
+});
+
+document.getElementById("teams-remove-data")!.addEventListener("contextmenu", (event) => {
+    if (event instanceof PointerEvent && event.pointerType !== "mouse") {
+        event.preventDefault(); // Prevents long-press context menu
+    }
 });
 
 document.getElementById("teams-remove-data")!.addEventListener("keydown", (event) => {
@@ -2132,5 +2158,17 @@ document.getElementById("export-qr-generate")!.addEventListener("click", async (
         "Human Player Throwing Algae"
     ]
 } satisfies SeasonConfig);
+
+//#endregion
+
+//#region Register Service Worker
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            await navigator.serviceWorker.register("./serviceworker.js", {scope: "/2898-scouter/"});
+        } catch (err) {} // probably a file:// url, in which case they don't need a SW
+    });
+}
 
 //#endregion

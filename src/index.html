@@ -7,9 +7,16 @@
         <meta property="og:title" content="2898 Scouter">
         <meta property="og:description" content="An FRC scouting app made by Team 2898">
         <meta property="og:site_name" content="2898 Scouter">
+        <link rel="icon" type="image/png" href="favicon-192.png">
         <link rel="icon" type="image/svg+xml" href="favicon.svg">
+        <link rel="manifest" id="manifest-link" href="manifest.webmanifest">
         <title>2898 Scouter</title>
         <script>
+            try {
+                // if this doesn't happen and you're viewing as a local file, you'll get a console full of CORS errors, at least in Chrome
+                if (location.protocol == "file:") document.getElementById("manifest-link").remove();
+            } catch (e) {}
+            
             // https://www.joshwcomeau.com/react/dark-mode/
             function getInitialColorMode() {
                 const persistedColorPreference =
@@ -103,26 +110,30 @@
                 <button id="onboarding-2-next">Next</button>
             </div>
             <div id="panel-configuration" class="panel" inert style="opacity: 0">
-                <h2>Select Configuration</h2>
-                <button id="config-back">Back</button>
-                <div id="config-presets">
-                    <input type="radio" name="config-preset" id="preset-frc-2024-crescendo" value="{}" checked>
-                    <label for="preset-frc-2024-crescendo">FRC 2024: Crescendo</label>
-                    <input type="radio" name="config-preset" id="preset-bunnybots-2024-balloon-a-palooza" value="{}">
-                    <label for="preset-bunnybots-2024-balloon-a-palooza">Bunnybots 2024: Balloon-a-Palooza</label>
-                    <input type="radio" name="config-preset" id="preset-frc-2025-reefscape" value="{}">
-                    <label for="preset-frc-2025-reefscape">FRC 2025: Reefscape</label>
+                <div style="grid-column: 1 / -1;">
+                    <h2>Select Configuration</h2>
+                    <button id="config-back">Back</button>
                 </div>
-                <button id="config-create">Make one</button>
-                <br>
-                <label for="config-teams">Paste Teams List</label>
-                <textarea name="config-teams" id="config-teams"></textarea>
-                <p>View events and their team lists at <a href="https://frc-events.firstinspires.org/" target="_blank">https://frc-events.firstinspires.org/</a>.</p>
-                <div id="config-teams-display">
-                    <p style="color: color-mix(in srgb, var(--bg), var(--color) 60%); font-style: italic;">teams are shown here after pasting</p>
+                <div>
+                    <div id="config-presets">
+                        <input type="radio" name="config-preset" id="preset-frc-2024-crescendo" value="{}" checked>
+                        <label for="preset-frc-2024-crescendo">FRC 2024: Crescendo</label>
+                        <input type="radio" name="config-preset" id="preset-bunnybots-2024-balloon-a-palooza" value="{}">
+                        <label for="preset-bunnybots-2024-balloon-a-palooza">Bunnybots 2024: Balloon-a-Palooza</label>
+                        <input type="radio" name="config-preset" id="preset-frc-2025-reefscape" value="{}">
+                        <label for="preset-frc-2025-reefscape">FRC 2025: Reefscape</label>
+                    </div>
+                    <button id="config-create">Make one</button>
                 </div>
-                <br>
-                <button id="config-next">Next</button>
+                <div>
+                    <label for="config-teams">Paste Teams List</label>
+                    <textarea name="config-teams" id="config-teams"></textarea>
+                    <p>View events and their team lists at <a href="https://frc-events.firstinspires.org/" target="_blank">https://frc-events.firstinspires.org/</a>.</p>
+                    <div id="config-teams-display">
+                        <p style="color: color-mix(in srgb, var(--bg), var(--color) 60%); font-style: italic;">teams are shown here after pasting</p>
+                    </div>
+                </div>
+                <div style="grid-column: 1 / -1;"><button id="config-next">Next</button></div>
             </div>
             <div id="panel-create-configuration" class="panel" inert style="opacity: 0">
                 <h2>Create Configuration</h2>
@@ -165,6 +176,7 @@
             <div id="panel-teams" class="panel" inert style="opacity: 0">
                 <div class="teams-button-row">
                     <button id="teams-back">Back</button>
+                    <button id="teams-skip-list" title="Focus the first button below the list of teams">Skip Teams List</button>
                 </div>
                 <div id="teams-list"></div>
                 <div class="teams-button-row">

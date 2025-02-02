@@ -9,6 +9,7 @@ body {
     background-color: var(--bg, #eee);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .hidden {
@@ -88,6 +89,8 @@ body {
     justify-content: center;
     align-items: center;
     gap: 0.5em;
+    overflow-y: scroll;
+    padding-inline: 0.5em;
 }
 
 .panel hr {
@@ -97,6 +100,10 @@ body {
 p, h1, h2, h3 {
     text-wrap: balance;
     text-align: center;
+}
+
+.panel > p:first-child, h1:first-child, h2:first-child, h3:first-child {
+    margin-block-start: 0;
 }
 
 img {
@@ -143,9 +150,17 @@ input[type=button], button {
     padding: 0.3em 0.5em;
     cursor: pointer;
     transition: background-color 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-input[type=button]:hover, button:hover {
+input[type=button]:hover, button:hover,
+input[type=button]:focus-visible, button:focus-visible {
+    background-color: color-mix(in srgb, var(--color) 20%, var(--bg));
+}
+
+input[type=button]:active, button:active {
+    transition: background-color 0.03s ease;
     background-color: color-mix(in srgb, var(--color) 20%, var(--bg));
 }
 
@@ -157,6 +172,7 @@ input[type=text], textarea, input[type*=time], input[type=number], select, .view
     font: inherit;
     padding: 0.3em 0.5em;
     min-height: 1em;
+    display: block;
 }
 
 select {
@@ -205,17 +221,41 @@ input[type=radio]:checked {
     background-image: radial-gradient(var(--color) 50%, transparent 50%);
 }
 
+#panel-configuration {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: min-content auto min-content;
+    padding: 0.5em 1.5em;
+    gap: 0.75em;
+}
+
+#panel-configuration > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+}
+
+#panel-configuration h1 {
+    margin: 0;
+}
+
+@media screen and (max-width: 80ch) {
+    #panel-configuration {
+        grid-template-columns: 1fr;
+        grid-template-rows: min-content auto auto min-content;
+    }
+}
+
 #config-presets {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
     gap: 1em;
-    max-height: max(7.5em, 25svh);
-    overflow-y: scroll;
     align-self: center;
     position: relative;
-    margin-inline: max(0.5em, 10%);
     border-radius: 0.3em;
 }
 
@@ -256,7 +296,7 @@ input[type=radio]:checked {
     max-height: max(12em, 25svh);
     overflow-y: scroll;
     border: 1px solid var(--color);
-    width: min(80dvw, 80ch);
+    width: 100%;
     text-align: center;
 }
 
@@ -343,6 +383,14 @@ input[type=radio]:checked {
     padding: 0.5em 0;
 }
 
+#teams-skip-list:not(:focus) {
+    width: 0;
+    height: 0;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
 #teams-list {
     flex-grow: 1;
     overflow: scroll;
@@ -353,7 +401,7 @@ input[type=radio]:checked {
 }
 
 #teams-list span, #entries-list span {
-    padding: 0 0.2em;
+    padding: 0 0.4em;
     text-align: center;
     text-wrap: balance;
 }

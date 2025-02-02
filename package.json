@@ -3,7 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build src/index.ts --target=browser --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
+    "build": "bun build src/index.ts src/serviceworker.ts --target=browser --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
   },
   "dependencies": {
     "color": "^4.2.3",

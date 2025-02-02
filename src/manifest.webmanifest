@@ -1,0 +1,36 @@
+{
+    "name": "2898 Scouter",
+    "icons": [
+        {
+            "src": "favicon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        },
+        {
+            "src": "favicon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "/2898-scouter",
+    "id": "/2898-scouter",
+    "display": "standalone",
+    "scope": "/2898-scouter",
+    "description": "An FRC scouting app made by Team 2898",
+    "screenshots": [
+        {
+            "src": "initial.png",
+            "type": "image/png",
+            "sizes": "1920x1080",
+            "form_factor": "wide",
+            "label": "Initial page (Desktop)"
+        },
+        {
+            "src": "initial-mobile.png",
+            "type": "image/png",
+            "sizes": "1082x2402",
+            "form_factor": "narrow",
+            "label":"Initial page (Mobile)"
+        }
+    ]
+}
