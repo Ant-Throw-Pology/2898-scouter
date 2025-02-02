@@ -18,7 +18,19 @@ const me = self as unknown as ServiceWorkerGlobalScope;
 
 me.addEventListener('install', (event) => {
     console.log('Service worker install event!');
-    event.waitUntil(Promise.resolve());
+    event.waitUntil((async () => {
+        const cache = await caches.open(cacheName);
+        try {
+            for (const path of toCache) {
+                const req = new Request(path);
+                const fetchedResponse = await fetch(req.clone());
+                if (fetchedResponse.ok) {
+                    console.log(req.url, "Fetched, updating cache");
+                    await cache.put(req, fetchedResponse);
+                }
+            }
+        } catch (e) {}
+    })());
 });
 
 me.addEventListener('activate', (event) => {
