@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - src/**
+      - .github/workflows/main.yml
   workflow_dispatch:
 
 permissions:
@@ -47,7 +48,7 @@ jobs:
           name: Canary build (latest commit)
           tag_name: canary
           body: |
-            This release corresponds to the commit `[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})`
+            This release corresponds to the commit [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
   
   deploy:
     environment:
