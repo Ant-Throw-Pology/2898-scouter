@@ -201,6 +201,7 @@ input[type=checkbox] {
 
 input[type=checkbox]:checked::before {
     content: "✔";
+    color: var(--color);
     transform: scale(0.85) translateY(-0.3em);
     display: inline-block;
     filter: grayscale(100%) brightness(var(--brightness-to-color));
