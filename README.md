@@ -40,6 +40,6 @@ bun run build --watch
 * [ ] Add the asset under the `src` directory
 * [ ] Import the asset in `index.ts`:
     ```ts
-    import "./asset.png" with {type: "asset"};
+    import "./asset.png" with {type: "file"};
     ```
 * [ ] Add the asset to the list of cached resources in `serviceworker.ts`

@@ -1,18 +1,21 @@
-import "./index.html" with {type: "asset"};
-import "./index.css" with {type: "asset"};
-import "./favicon.svg" with {type: "asset"};
-import "./bin.svg" with {type: "asset"};
-import "./manifest.webmanifest" with {type: "asset"};
-import "./favicon-512.png" with {type: "asset"};
-import "./favicon-192.png" with {type: "asset"};
-import "./screenshots/initial.png" with {type: "asset"};
-import "./screenshots/initial-mobile.png" with {type: "asset"};
+import "./index.html" with {type: "file"};
+import "./index.css" with {type: "file"};
+import "./favicon.svg" with {type: "file"};
+import "./bin.svg" with {type: "file"};
+import "./manifest.webmanifest" with {type: "file"};
+import "./favicon-512.png" with {type: "file"};
+import "./favicon-192.png" with {type: "file"};
+import "./screenshots/initial.png" with {type: "file"};
+import "./screenshots/initial-mobile.png" with {type: "file"};
 import { ce, makeid, type CEOptions } from "./ce";
 import { Html5Qrcode } from "html5-qrcode";
 import { toDataURL } from "qrcode";
 import { parse, unparse } from 'papaparse';
 import Color from "color";
 import { gzip, ungzip } from "pako";
+import { version } from "../package.json";
+
+document.getElementById("version")!.innerText = "v" + version;
 
 //#region Data Interfaces
 
@@ -123,15 +126,70 @@ async function switchToPanel(panel: string, detail?: any) {
     ], {duration: 150, easing: "ease", fill: "both"}).finished;
 }
 
-function pulseColor(element: Element, color: string, animationOptions: KeyframeEffectOptions = {duration: 500}) {
+function pulseColor(element: HTMLElement, color: string, animationOptions: KeyframeEffectOptions = {duration: 500}) {
+    element.scrollIntoView({block: "center", inline: "center", behavior: "instant"});
+    let e: Element | null = element;
+    while (e && !(e instanceof HTMLInputElement || e instanceof HTMLSelectElement || e instanceof HTMLTextAreaElement)) e = e.firstElementChild || e.nextElementSibling;
+    console.log(e);
+    if (e) e.focus();
     return element.animate([
         {backgroundColor: Color(color).darken(0.6).toString(), color, borderColor: color},
         {backgroundColor: window.getComputedStyle(element).backgroundColor}
     ], animationOptions);
 }
 
+function throwAndPulseColorIf<T>(
+    value: T,
+    predicate: (value: T) => boolean,
+    element: HTMLElement,
+    color: string,
+    toThrow: any,
+    animationOptions: KeyframeEffectOptions = {duration: 500}
+): T {
+    if (predicate(value)) {
+        pulseColor(element, color, animationOptions);
+        throw toThrow;
+    } else return value;
+}
+
 function kebabify(str: string) {
     return str.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
+}
+
+function makeAbilityFieldset(items: string[], selections: string[], idPrefix: string, element: HTMLElement, values?: {[x: string]: string}) {
+    for (const item of items) {
+        const index = kebabify(item);
+        const name = idPrefix + index;
+        element.appendChild(ce({
+            name: "fieldset",
+            dataset: {item, index},
+            content: [
+                {name: "legend", content: item},
+                ...selections.flatMap((v, i) => {
+                    const value = v.toLowerCase();
+                    const id = `${name}-${value}`;
+                    return [
+                        ...(i > 0 ? [{name: "br" as "br"}] : []),
+                        {
+                            name: "input",
+                            id,
+                            attrs: {
+                                type: "radio",
+                                name,
+                                value
+                            },
+                            checked: values && values[index] == value
+                        },
+                        {
+                            name: "label",
+                            htmlFor: id,
+                            content: v
+                        }
+                    ] satisfies CEOptions[]
+                })
+            ]
+        }));
+    }
 }
 
 function masonry(elements: HTMLElement[], numCols: number, leadingRows: number = 0) {
@@ -1325,42 +1383,6 @@ document.getElementById("view-pits-back-2")!.addEventListener("click", async () 
 
 //#region Panel: Scout (Stands)
 
-function makeAbilityFieldset(items: string[], selections: string[], idPrefix: string, element: HTMLElement, values?: {[x: string]: string}) {
-    for (const item of items) {
-        const index = kebabify(item);
-        const name = idPrefix + index;
-        element.appendChild(ce({
-            name: "fieldset",
-            dataset: {item, index},
-            content: [
-                {name: "legend", content: item},
-                ...selections.flatMap((v, i) => {
-                    const value = v.toLowerCase();
-                    const id = `${name}-${value}`;
-                    return [
-                        ...(i > 0 ? [{name: "br" as "br"}] : []),
-                        {
-                            name: "input",
-                            id,
-                            attrs: {
-                                type: "radio",
-                                name,
-                                value
-                            },
-                            checked: values && values[index] == value
-                        },
-                        {
-                            name: "label",
-                            htmlFor: id,
-                            content: v
-                        }
-                    ] satisfies CEOptions[]
-                })
-            ]
-        }));
-    }
-}
-
 document.getElementById("panel-scout-stands")!.addEventListener("transitionedto", (event) => {
     const team = (event as CustomEvent<Team>).detail;
     if (!configuration) return;
@@ -1457,10 +1479,14 @@ document.getElementById("scout-stands-back")!.addEventListener("click", async ()
                 Array.from(document.querySelectorAll<HTMLFieldSetElement>(`#scout-stands-sec-${section} > fieldset`))
                     .map(el => [
                         el.dataset.index,
-                        (
+                        (throwAndPulseColorIf(
                             Array.from(el.children)
-                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked) as HTMLInputElement
-                        ).value
+                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked),
+                            v => v === undefined,
+                            el,
+                            "#f00",
+                            0
+                        ) as HTMLInputElement).value
                     ])
             );
         }
@@ -1469,9 +1495,27 @@ document.getElementById("scout-stands-back")!.addEventListener("click", async ()
             type: "stands",
             by: scouterName || "(untitled scouter)",
             when: Date.now(),
-            matchNumber: (document.getElementById("scout-stands-match-number") as HTMLInputElement).valueAsNumber,
-            matchType: (document.getElementById("scout-stands-match-type") as HTMLSelectElement).value,
-            allianceScore: (document.getElementById("scout-stands-alliance-score") as HTMLInputElement).valueAsNumber,
+            matchNumber: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-match-number") as HTMLInputElement).valueAsNumber,
+                isNaN,
+                document.getElementById("scout-stands-match-number")!,
+                "#f00",
+                0
+            ),
+            matchType: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-match-type") as HTMLSelectElement).value,
+                v => v.length == 0,
+                document.getElementById("scout-stands-match-type")!,
+                "#f00",
+                0
+            ),
+            allianceScore: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-alliance-score") as HTMLInputElement).valueAsNumber,
+                isNaN,
+                document.getElementById("scout-stands-alliance-score")!,
+                "#f00",
+                0
+            ),
             won: (document.getElementById("scout-stands-won") as HTMLInputElement).checked,
             carried: (document.getElementById("scout-stands-carried") as HTMLInputElement).checked,
             wereCarried: (document.getElementById("scout-stands-were-carried") as HTMLInputElement).checked,
@@ -1479,10 +1523,34 @@ document.getElementById("scout-stands-back")!.addEventListener("click", async ()
             eStop: (document.getElementById("scout-stands-e-stopped") as HTMLInputElement).checked,
             died: (document.getElementById("scout-stands-died") as HTMLInputElement).checked,
             droppedItems: (document.getElementById("scout-stands-dropped-items") as HTMLInputElement).checked,
-            defenseNotes: (document.getElementById("scout-stands-defense-notes") as HTMLTextAreaElement).value,
-            offenseNotes: (document.getElementById("scout-stands-offense-notes") as HTMLTextAreaElement).value,
-            driveRating: (document.getElementById("scout-stands-drive-rating") as HTMLInputElement).valueAsNumber,
-            cycleTime: (document.getElementById("scout-stands-cycle-time") as HTMLInputElement).valueAsNumber,
+            defenseNotes: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-defense-notes") as HTMLTextAreaElement).value,
+                v => v.length == 0,
+                document.getElementById("scout-stands-defense-notes")!,
+                "#f00",
+                0
+            ),
+            offenseNotes: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-offense-notes") as HTMLTextAreaElement).value,
+                v => v.length == 0,
+                document.getElementById("scout-stands-offense-notes")!,
+                "#f00",
+                0
+            ),
+            driveRating: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-drive-rating") as HTMLInputElement).valueAsNumber,
+                isNaN,
+                document.getElementById("scout-stands-drive-rating")!,
+                "#f00",
+                0
+            ),
+            cycleTime: throwAndPulseColorIf(
+                (document.getElementById("scout-stands-cycle-time") as HTMLInputElement).valueAsNumber,
+                isNaN,
+                document.getElementById("scout-stands-cycle-time")!,
+                "#f00",
+                0
+            ),
             scoring: getSectionEntries("scoring"),
             mobility: getSectionEntries("mobility"),
             otherScale: getSectionEntries("other"),
@@ -1492,6 +1560,8 @@ document.getElementById("scout-stands-back")!.addEventListener("click", async ()
         if (!team) return;
         await saveEntry(team, entry);
         await switchToPanel("teams");
+    } catch (e) {
+        if (typeof e != "number") throw e;
     } finally {
         this.disabled = false;
     }
@@ -1592,10 +1662,14 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
                 Array.from(document.querySelectorAll<HTMLFieldSetElement>(`#scout-pits-sec-${section} > fieldset`))
                     .map(el => [
                         el.dataset.index,
-                        (
+                        (throwAndPulseColorIf(
                             Array.from(el.children)
-                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked) as HTMLInputElement
-                        ).value
+                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked),
+                            v => v === undefined,
+                            el,
+                            "#f00",
+                            0
+                        ) as HTMLInputElement).value
                     ])
             );
         }
@@ -1604,19 +1678,33 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
             type: "pits",
             by: scouterName || "(untitled scouter)",
             when: Date.now(),
-            drivetrain: (document.getElementById("scout-pits-drivetrain") as HTMLInputElement).value,
+            drivetrain: throwAndPulseColorIf(
+                (document.getElementById("scout-pits-drivetrain") as HTMLInputElement).value,
+                v => v.length == 0,
+                document.getElementById("scout-pits-drivetrain")!,
+                "#f00",
+                0
+            ),
             leds: (document.getElementById("scout-pits-leds") as HTMLTextAreaElement).value || "None present",
-            cycleTime: (document.getElementById("scout-pits-cycle-time") as HTMLInputElement).valueAsNumber,
+            cycleTime: throwAndPulseColorIf(
+                (document.getElementById("scout-pits-cycle-time") as HTMLInputElement).valueAsNumber,
+                isNaN,
+                document.getElementById("scout-pits-cycle-time")!,
+                "#f00",
+                0
+            ),
             scoring: getSectionEntries("scoring"),
             mobility: getSectionEntries("mobility"),
             otherScale: getSectionEntries("other"),
             otherBool: Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('#scout-pits-sec-other input[name^="scout-pits-other-bool"]')).map(el => [el.dataset.index, el.checked])),
-            willChange: (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).valueAsDate?.getTime() || undefined
+            willChange: (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked && (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).valueAsDate?.getTime() || undefined
         };
         const team = getTeam(teamNumber);
         if (!team) return;
         await saveEntry(team, entry);
         await switchToPanel("teams");
+    } catch (e) {
+        if (typeof e != "number") throw e;
     } finally {
         this.disabled = false;
     }

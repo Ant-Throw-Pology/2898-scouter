@@ -27,6 +27,11 @@ body {
     margin-right: auto;
 }
 
+#version {
+    font-size: 0.75em;
+    color: color-mix(in srgb, var(--color) 70%, var(--bg));
+}
+
 @media print {
     body {
         color: #000;
@@ -218,8 +223,14 @@ input[type=radio] {
     vertical-align: text-top;
 }
 
-input[type=radio]:checked {
-    background-image: radial-gradient(var(--color) 50%, transparent 50%);
+input[type=radio]:checked::before {
+    background-color: var(--color);
+    content: "";
+    width: 70%;
+    height: 70%;
+    display: block;
+    border-radius: 50%;
+    margin: 15%;
 }
 
 #panel-configuration {

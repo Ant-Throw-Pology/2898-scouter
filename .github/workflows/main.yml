@@ -1,4 +1,4 @@
-name: Main
+name: Canary Release
 
 on:
   push:
@@ -6,20 +6,12 @@ on:
       - main
     paths:
       - src/**
-      - .github/workflows/main.yml
-  workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
-  build:
+  canary:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,10 +25,6 @@ jobs:
         run: bun install -p
       - name: Build with Bun
         run: bun run build --sourcemap=none
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./build
       - name: Zip for Canary Release
         working-directory: ./build
         run: zip -r ../scouter.zip .
@@ -49,14 +37,3 @@ jobs:
           tag_name: canary
           body: |
             This release corresponds to the commit [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-  
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
