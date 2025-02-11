@@ -7,6 +7,8 @@ Try the app here: https://ant-throw-pology.github.io/2898-scouter
 
 An installer is available (for Linux, macOS, Windows, Crostini/ChromeOS Linux Mode) which will install the app to your computer: https://github.com/droid-kk11/2898-scouter-installer
 
+To install on Chrome OS, download scouter.zip from [the latest scouter release](https://github.com/Ant-Throw-Pology/2898-scouter/releases/latest), unzip it, and run it from a memorable location. (Until a ChromeOS installer is created).
+
 ## Contributing
 
 We use [Bun](https://bun.sh/) as our build system.
