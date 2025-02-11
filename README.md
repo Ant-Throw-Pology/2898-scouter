@@ -5,8 +5,10 @@ A scouting app written in HTML, CSS, and TypeScript by members of FRC team 2898.
 
 Try the app here: https://ant-throw-pology.github.io/2898-scouter
 
+## Installing on 64-bit macOS, Linux, Windows, or Crostini
 An installer is available (for Linux, macOS, Windows, Crostini/ChromeOS Linux Mode) which will install the app to your computer: https://github.com/droid-kk11/2898-scouter-installer
 
+## "Installing" on Chrome OS, or other systems unsupported by the installer
 To install on Chrome OS, download scouter.zip from [the latest scouter release](https://github.com/Ant-Throw-Pology/2898-scouter/releases/latest), unzip it, and run it from a memorable location. (Until a ChromeOS installer is created).
 
 ## Contributing
