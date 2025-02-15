@@ -15,7 +15,7 @@ import Color from "color";
 import { gzip, ungzip } from "pako";
 import { version } from "../package.json";
 
-document.getElementById("version")!.innerText = "v" + version;
+document.getElementById("version")!.innerText = (version.startsWith("canary") ? "" : "v") + version;
 
 //#region Data Interfaces
 
