@@ -652,17 +652,20 @@ input[type=radio]:checked::before {
     pointer-events: none;
 }
 
-#import-qr-reader {
-    width: 600px;
-    max-width: 95%;
+#import-qr-reader, #import-config-reader {
+    width: 100%;
 }
 
-#panel-export-qr {
+#import-qr-reader video, #import-config-reader video {
+    width: 100% !important;
+}
+
+#panel-export-qr, #panel-export-configuration {
     padding: 0.5em 2em;
     text-align: center;
 }
 
-#export-qr-images {
+#export-qr-images, #export-config-images {
     flex-grow: 1;
     overflow: scroll;
     display: flex;
@@ -670,15 +673,28 @@ input[type=radio]:checked::before {
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: center;
+    gap: 0.2em;
 }
 
-#panel-export-qr h3, #panel-export-qr p {
+#export-qr-images img, #export-config-images img {
+    image-rendering: pixelated;
+    height: calc(100% - 1em);
+    width: auto;
+}
+
+#export-config-images.unpixelated img {
+    image-rendering: auto;
+}
+
+#panel-export-qr h3, #panel-export-qr p,
+#panel-export-configuration h3, #panel-export-configuration p {
     margin: 0;
     max-width: 60ch;
 }
 
 @media print {
-    #panel-export-qr > :not(#export-qr-images) {
+    #panel-export-qr > :not(#export-qr-images),
+    #panel-export-configuration > :not(#export-config-images) {
         display: none;
     }
 }

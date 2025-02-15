@@ -95,6 +95,9 @@ const teamNumberNameRegex = /^(?<number>\d+\w*) (?<name>.*)$/;
 // I may have other things I want to host on subpaths under my GitHub Pages site that use localStorage, so I'm doing this to isolate them somewhat.
 const STORAGE_PREFIX = "scouter:";
 
+const SCOUT_DATA_PREFIX = "scoutdata:";
+const SCOUT_CONF_PREFIX = "scoutconf:";
+
 let currentPanel = "onboarding-1";
 let scouterName: string | undefined;
 let scouterRole: "pits" | "stands" | undefined;
@@ -130,7 +133,6 @@ function pulseColor(element: HTMLElement, color: string, animationOptions: Keyfr
     element.scrollIntoView({block: "center", inline: "center", behavior: "instant"});
     let e: Element | null = element;
     while (e && !(e instanceof HTMLInputElement || e instanceof HTMLSelectElement || e instanceof HTMLTextAreaElement)) e = e.firstElementChild || e.nextElementSibling;
-    console.log(e);
     if (e) e.focus();
     return element.animate([
         {backgroundColor: Color(color).darken(0.6).toString(), color, borderColor: color},
@@ -548,6 +550,10 @@ document.getElementById("config-back")!.addEventListener("click", async () => {
     await switchToPanel("onboarding-2");
 });
 
+document.getElementById("config-import")!.addEventListener("click", async () => {
+    await switchToPanel("import-configuration");
+});
+
 document.getElementById("config-create")!.addEventListener("click", async () => {
     await switchToPanel("create-configuration");
 });
@@ -636,6 +642,65 @@ document.getElementById("config-next")!.addEventListener("click", async () => {
     };
     await saveConfiguration();
     await switchToPanel("teams");
+});
+
+//#endregion
+
+//#region Panel: Import Config from QR Code
+
+let configReader: Html5Qrcode | undefined;
+
+document.getElementById("import-config-back")!.addEventListener("click", async () => {
+    if (configReader) {
+        configReader.stop();
+        configReader = undefined;
+    }
+    await switchToPanel("teams");
+});
+
+document.getElementById("panel-import-configuration")!.addEventListener("transitionedto", async () => {
+    configReader = new Html5Qrcode("import-config-reader");
+    const scanned = new Set<string>();
+    const codes: {[x: number]: string[]} = {};
+    await configReader.start(
+        {
+            facingMode: "environment" // prefer environment, but also prefer having camera over no camera
+        },
+        {
+            fps: 10
+        },
+        (text, result) => {
+            (async () => {
+                if (!text.startsWith(SCOUT_CONF_PREFIX)) return;
+                text = text.slice(SCOUT_CONF_PREFIX.length);
+                if (scanned.has(text)) return; // ignore duplicates
+                scanned.add(text);
+                const m = text.match(/^(\d+)\/(\d+):/);
+                if (!m) return;
+                const n = +m[1], total = +m[2];
+                codes[total] ??= Array(total).fill(undefined);
+                codes[total][n - 1] ??= text;
+                if (codes[total].every(c => c)) {
+                    const data = codes[total].join("");
+                    const arr = new Uint8Array(data.length);
+                    for (let i = 0; i < data.length; i++) {
+                        arr[i] = data.charCodeAt(i);
+                    }
+                    const unzipped = ungzip(arr, {to: "string"});
+                    const conf = JSON.parse(unzipped);
+                    if (!checkConfiguration(conf)) return;
+                    configuration = conf;
+                    await saveConfiguration();
+                    if (configReader) {
+                        configReader.stop();
+                        configReader = undefined;
+                    }
+                    await switchToPanel("teams");
+                }
+            })();
+        },
+        (err) => {}
+    );
 });
 
 //#endregion
@@ -896,6 +961,10 @@ document.getElementById("panel-teams")!.addEventListener("transitionedto", () =>
     else document.getElementById("teams-remove-data")!.style.display = "none";
 });
 
+document.getElementById("teams-export-config")!.addEventListener("click", async () => {
+    await switchToPanel("export-configuration");
+});
+
 document.getElementById("teams-skip-list")!.addEventListener("click", () => {
     document.getElementById("teams-import-csv")!.focus();
 });
@@ -994,6 +1063,51 @@ function removeDataCycle() {
     }
     document.getElementById("teams-remove-data")!.style.setProperty("--gr-pc", removeDataProgress * 100 + "%");
 }
+
+//#endregion
+
+//#region Panel: Export Configuration to QR Code
+
+document.getElementById("export-config-back")!.addEventListener("click", async () => {
+    await switchToPanel("teams");
+});
+
+(document.getElementById("export-config-pixelate") as HTMLInputElement).addEventListener("input", function () {
+    document.getElementById("export-config-images")!.classList[this.checked ? "remove" : "add"]("unpixelated")
+});
+
+document.getElementById("panel-export-configuration")!.addEventListener("transitionedto", async () => {
+    if (!configuration) throw new Error();
+    const imgSection = document.getElementById("export-config-images")!;
+    Array.from(imgSection.children).forEach(el => el.remove());
+    const conf = JSON.stringify(configuration);
+    const gzipped = gzip(conf, {level: 9});
+    let code = "";
+    for (let i = 0; i < gzipped.length; i++) {
+        code += String.fromCharCode(gzipped[i]);
+    }
+    let urls: string[], count = 1;
+    while (true) {
+        try {
+            urls = [];
+            for (let i = 0; i < count; i++) {
+                urls.push(await toDataURL(`${SCOUT_CONF_PREFIX}${i + 1}/${count}:${code.slice(Math.floor(i * code.length / count), Math.floor((i + 1) * code.length / count))}`, {
+                    errorCorrectionLevel: "L"
+                }));
+            }
+            break;
+        } catch (e) {
+            if (!String(e).toLowerCase().includes("too big to be stored in a qr code")) throw e;
+            count++;
+        }
+    }
+    for (const url of urls) {
+        imgSection.appendChild(ce({
+            name: "img",
+            src: url
+        }));
+    }
+});
 
 //#endregion
 
@@ -1774,7 +1888,6 @@ document.getElementById("panel-import-csv")!.addEventListener("drop", async (eve
                 const file = item.getAsFile();
                 if (!file || file.type != "text/csv") return;
                 await importCsv(file);
-                console.log(`… file[${i}].name = ${file.name}`);
             }
         }));
     } else {
@@ -1782,7 +1895,6 @@ document.getElementById("panel-import-csv")!.addEventListener("drop", async (eve
         await Promise.all(Array.from(event.dataTransfer.files).map(async (file, i) => {
             if (file.type != "text/csv") return;
             await importCsv(file);
-            console.log(`… file[${i}].name = ${file.name}`);
         }));
     }
 });
@@ -2023,7 +2135,6 @@ async function exportCsv(
         // update chunkSize to get closer to targetTime, hopefully
         const timePerRow = diff / slice.length;
         chunkSize = Math.max(1, Math.round(targetTime / timePerRow));
-        // console.log(`${slice.length}// rows (#s ${i}-${i + slice.length - 1}) took ${diff}ms, changing chunk size to ${chunkSize}`);
         i += slice.length;
         progressBar.value = i;
         status.innerText = `${i} of ${data.length} rows done`;
@@ -2106,18 +2217,17 @@ document.getElementById("panel-import-qr")!.addEventListener("transitionedto", a
         },
         (text, result) => {
             (async () => {
+                if (!text.startsWith(SCOUT_DATA_PREFIX)) return;
+                text = text.slice(SCOUT_DATA_PREFIX.length);
                 if (scanned.has(text)) return; // ignore duplicates
                 scanned.add(text);
                 const arr = new Uint8Array(text.length);
                 for (let i = 0; i < text.length; i++) {
                     arr[i] = text.charCodeAt(i);
                 }
-                console.log([text], arr);
                 const unzipped = ungzip(arr);
-                console.log(unzipped);
                 const file = new File([unzipped], "qrcode.csv", {type: "text/csv"});
                 await importCsv(file);
-                console.log(entries);
             })();
         },
         (err) => {}
@@ -2168,11 +2278,10 @@ document.getElementById("export-qr-generate")!.addEventListener("click", async (
     Array.from(imgSection.children).forEach(el => el.remove());
     async function makeCode(toCode: string) {
         const gzipped = gzip(toCode, {level: 9});
-        let code = "";
+        let code = SCOUT_DATA_PREFIX;
         for (let i = 0; i < gzipped.length; i++) {
             code += String.fromCharCode(gzipped[i]);
         }
-        console.log([toCode], gzipped, [code]);
         const url = await toDataURL(code, {
             errorCorrectionLevel: "L"
         });

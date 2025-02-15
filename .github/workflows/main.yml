@@ -18,11 +18,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
       - name: Install dependencies
         run: bun install -p
+      - name: Set Canary Version
+        run: |
+          sed -Ei '/"version"/s/"([0-9]+\.)+[0-9]+"/"canary-${{ github.sha }}"/' package.json
       - name: Build with Bun
         run: bun run build --sourcemap=none
       - name: Zip for Canary Release

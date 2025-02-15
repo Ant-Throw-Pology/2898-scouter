@@ -1,46 +1,42 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - package.json
-      - .github/workflows/release.yml
+  workflow_dispatch:
+    inputs:
+      new_version:
+        description: New Version
+        required: true
+        type: string
 
 permissions:
   contents: write
   pages: write
+  id-token: write
 
 jobs:
-  versions:
+  bump_version:
     runs-on: ubuntu-latest
-    outputs:
-      new_version: ${{ steps.get-new-version.outputs.new_version }}
-      old_version: ${{ steps.get-old-version.outputs.old_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          fetch-tags: true
-      - name: Get New Version
-        id: get-new-version
+          ref: ${{ github.head_ref }}
+      - name: Set Version
         run: |
-          version=$(sed -En '/version/s/^.*"(([0-9]+\.)+[0-9]+)".*$/\1/p' package.json)
-          echo "new_version=v$version" >> "$GITHUB_OUTPUT"
-      - name: Get Old Version
-        id: get-old-version
-        run: |
-          version=$(git describe --abbrev=0 --tags)
-          echo "old_version=$version" >> "$GITHUB_OUTPUT"
+          echo "${{ inputs.new_version }}" | grep -Eq '^([0-9]+\.)+[0-9]+$' && sed -Ei '/"version"/s/"([0-9]+\.)+[0-9]+"/"${{ inputs.new_version }}"/' package.json
+      - name: Commit Version
+        uses: stefanzweifel/git-auto-commit-action@v5.1.0
+        with:
+          commit_message: v${{ inputs.new_version }}
+  
   build:
-    needs: versions
+    needs: bump_version
     runs-on: ubuntu-latest
-    if: needs.versions.outputs.new_version != needs.versions.outputs.old_version
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
       - name: Setup Pages
@@ -61,10 +57,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: scouter.zip
-          make_latest: true
-          tag_name: ${{ needs.versions.outputs.new_version }}
+          draft: true
+          tag_name: v${{ inputs.new_version }}
           body: |
             Try the app: https://ant-throw-pology.github.io/2898-scouter
+          generate_release_notes: true
   
   deploy:
     environment:
