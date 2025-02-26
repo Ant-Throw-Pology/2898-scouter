@@ -621,7 +621,7 @@ document.getElementById("config-teams")!.addEventListener("input", function(this
 document.getElementById("config-next")!.addEventListener("click", async () => {
     const seasonConfig: SeasonConfig | null = JSON.parse(Array.from(document.querySelectorAll<HTMLInputElement>("input[name=config-preset]")).find(el => el.checked)?.value || "null");
     if (!seasonConfig) return;
-    const value = (document.getElementById("config-teams") as HTMLInputElement).value.trim();
+    const value = (document.getElementById("config-teams") as HTMLTextAreaElement).value.trim();
     const split = value.includes("\n\n") ? value.split("\n\n").map(v => v.split("\n")) : value.split("\n").map(v => v.split("\t"));
     const teams = [];
     for (const item of split) {
@@ -636,7 +636,10 @@ document.getElementById("config-next")!.addEventListener("click", async () => {
         }
         teams.push({number: teamNumber, name: teamName, location});
     }
-    if (teams.length < 1) return;
+    if (teams.length < 1) {
+        pulseColor(document.getElementById("config-teams")!, "#f00");
+        return;
+    }
     configuration = {
         ...seasonConfig,
         teams
@@ -886,7 +889,7 @@ document.getElementById("panel-teams")!.addEventListener("transitionedto", () =>
                     if (diff === 0) break;
                 }
                 pitScouted = `Changes in ${values.reverse().slice(0, 2).map(([unit, val]) => `${val}${unit}`).join(" ")}`;
-            } else pitScouted = "Changed";
+            } else pitScouted = "Revisit";
         }
         if (pitScouted && latestPitsEntry?.by) pitScouted += " / " + latestPitsEntry?.by;
         teamsList.appendChild(ce({
@@ -1779,8 +1782,8 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
                         el.dataset.index,
                         (throwAndPulseColorIf(
                             Array.from(el.children)
-                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked),
-                            v => v === undefined,
+                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked) || (willChange ? "" : undefined),
+                            v => !willChange && v === undefined,
                             el,
                             "#f00",
                             0
@@ -1789,21 +1792,22 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
             );
         }
         const teamNumber = document.getElementById("scout-pits-team-number")!.innerText;
+        const willChange = (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked && (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).valueAsDate?.getTime() || undefined;
         const entry: PitsScoutData = {
             type: "pits",
             by: scouterName || "(untitled scouter)",
             when: Date.now(),
             drivetrain: throwAndPulseColorIf(
                 (document.getElementById("scout-pits-drivetrain") as HTMLInputElement).value,
-                v => v.length == 0,
+                v => !willChange && v.length == 0,
                 document.getElementById("scout-pits-drivetrain")!,
                 "#f00",
                 0
             ),
             leds: (document.getElementById("scout-pits-leds") as HTMLTextAreaElement).value || "None present",
             cycleTime: throwAndPulseColorIf(
-                (document.getElementById("scout-pits-cycle-time") as HTMLInputElement).valueAsNumber,
-                isNaN,
+                (document.getElementById("scout-pits-cycle-time") as HTMLInputElement).valueAsNumber || (willChange ? 0 : NaN),
+                v => isNaN(v),
                 document.getElementById("scout-pits-cycle-time")!,
                 "#f00",
                 0
@@ -1812,7 +1816,7 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
             mobility: getSectionEntries("mobility"),
             otherScale: getSectionEntries("other"),
             otherBool: Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('#scout-pits-sec-other input[name^="scout-pits-other-bool"]')).map(el => [el.dataset.index, el.checked])),
-            willChange: (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked && (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).valueAsDate?.getTime() || undefined
+            willChange
         };
         const team = getTeam(teamNumber);
         if (!team) return;
@@ -2277,6 +2281,13 @@ document.getElementById("export-qr-generate")!.addEventListener("click", async (
     let chunk = columns.join(",");
     const imgSection = document.getElementById("export-qr-images")!;
     Array.from(imgSection.children).forEach(el => el.remove());
+    if (data.length == 0) {
+        imgSection.appendChild(ce({
+            name: "p",
+            content: "You don't have any entries to export!"
+        }));
+        return;
+    }
     async function makeCode(toCode: string) {
         const gzipped = gzip(toCode, {level: 9});
         let code = SCOUT_DATA_PREFIX;
