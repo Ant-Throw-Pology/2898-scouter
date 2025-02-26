@@ -12,6 +12,14 @@ body {
     overflow: hidden;
 }
 
+a {
+    text-decoration: none;
+}
+
+a:hover, a:focus {
+    text-decoration: underline;
+}
+
 .hidden {
     display: none;
 }
@@ -25,11 +33,22 @@ body {
 
 #header > div:first-child {
     margin-right: auto;
+    display: flex;
+    gap: 0.75em;
+    align-items: center;
 }
 
 #version {
     font-size: 0.75em;
     color: color-mix(in srgb, var(--color) 70%, var(--bg));
+}
+
+#header a {
+}
+
+#header svg {
+    width: 1em;
+    height: 1em;
 }
 
 @media print {
@@ -111,7 +130,7 @@ p, h1, h2, h3 {
     margin-block-start: 0;
 }
 
-img {
+img, svg {
     display: block;
     max-width: 100%;
 }

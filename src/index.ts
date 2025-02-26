@@ -16,6 +16,7 @@ import { gzip, ungzip } from "pako";
 import { version } from "../package.json";
 
 document.getElementById("version")!.innerText = (version.startsWith("canary") ? "" : "v") + version;
+(document.getElementById("version") as HTMLAnchorElement).href = `https://github.com/Ant-Throw-Pology/2898-scouter/releases/tag/${version.startsWith("canary") ? "canary" : "v" + version}`;
 
 //#region Data Interfaces
 
