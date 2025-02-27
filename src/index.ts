@@ -14,9 +14,12 @@ import { parse, unparse } from 'papaparse';
 import Color from "color";
 import { gzip, ungzip } from "pako";
 import { version } from "../package.json";
+import { readHelp } from "./help" with {type: "macro"};
 
 document.getElementById("version")!.innerText = (version.startsWith("canary") ? "" : "v") + version;
 (document.getElementById("version") as HTMLAnchorElement).href = `https://github.com/Ant-Throw-Pology/2898-scouter/releases/tag/${version.startsWith("canary") ? "canary" : "v" + version}`;
+
+const helpText = readHelp();
 
 //#region Data Interfaces
 
@@ -425,6 +428,126 @@ function checkStorageData(value: unknown): value is StorageData {
         "config" in value && checkConfiguration(value.config) &&
         "entries" in value && checkEntries(value.entries);
 }
+
+//#endregion
+
+//#region Help
+
+document.getElementById("help-button")!.addEventListener("click", function createHelpDialog(this: any) {
+    document.getElementById("help-dialog-c")?.remove();
+    const dialog = ce({
+        name: "div",
+        id: "help-dialog-c",
+        events: {
+            click() {
+                this.remove();
+                document.getElementById("header")!.inert = false;
+                document.getElementById("panels")!.inert = false;
+            }
+        }
+    });
+    document.body.appendChild(dialog);
+    document.getElementById("header")!.inert = true;
+    document.getElementById("panels")!.inert = true;
+    Array.from(dialog.children).forEach(el => el.remove());
+    const relevantArticles = Object.entries(helpText[currentPanel] || {});
+    const otherArticles = Object.entries(helpText).map(([group, articles]) => group != currentPanel ? Object.entries(articles) : []).flat(1);
+    function prepareArticles(articles: [string, string][]): CEOptions[] {
+        return articles.map(([title, content]) => ({
+            name: "a",
+            class: "help-article",
+            content: title,
+            href: "javascript:void 0;",
+            events: {
+                click() {
+                    document.getElementById("help-dialog-c")?.remove();
+                    const dialog = ce({
+                        name: "div",
+                        id: "help-dialog-c",
+                        events: {
+                            click() {
+                                this.remove();
+                                document.getElementById("header")!.inert = false;
+                                document.getElementById("panels")!.inert = false;
+                            }
+                        }
+                    });
+                    document.body.appendChild(dialog);
+                    document.getElementById("header")!.inert = true;
+                    document.getElementById("panels")!.inert = true;
+                    Array.from(dialog.children).forEach(el => el.remove());
+                    dialog.appendChild(ce({
+                        name: "div",
+                        class: "help-dialog",
+                        content: [
+                            {
+                                name: "h1",
+                                class: "help-header",
+                                content: [
+                                    {
+                                        name: "button",
+                                        content: "\xd7",
+                                        attrs: {title: "Exit Help"}
+                                    },
+                                    title,
+                                    {
+                                        name: "button",
+                                        content: "\xab",
+                                        attrs: {title: "Back"}
+                                    }
+                                ],
+                            },
+                            content.replace(/<h1>[^<]+<\/h1>/i, "").trim()
+                        ],
+                        contentAsHTML: true,
+                        events: {
+                            click(event) {
+                                event.stopPropagation();
+                                if (event.target instanceof HTMLButtonElement) {
+                                    document.getElementById("help-dialog-c")?.remove();
+                                    document.getElementById("header")!.inert = false;
+                                    document.getElementById("panels")!.inert = false;
+                                    if (event.target.innerText.includes("\xab")) createHelpDialog();
+                                }
+                            }
+                        }
+                    }));
+                }
+            }
+        } satisfies CEOptions));
+    }
+    dialog.appendChild(ce({
+        name: "div",
+        class: "help-dialog",
+        content: [
+            {
+                name: "h1",
+                class: "help-header",
+                content: [
+                    {
+                        name: "button",
+                        content: "\xd7",
+                        attrs: {title: "Exit Help"},
+                        events: {
+                            click() {
+                                dialog.remove();
+                                document.getElementById("header")!.inert = false;
+                                document.getElementById("panels")!.inert = false;
+                            }
+                        }
+                    },
+                    "Help"
+                ],
+            } as CEOptions
+        ].concat(relevantArticles.length > 0 ? [
+            {name: "h2", content: "Relevant articles"},
+            ...prepareArticles(relevantArticles),
+            {name: "h2", content: "Other articles"},
+            ...prepareArticles(otherArticles)
+        ] as CEOptions[] : prepareArticles(otherArticles)),
+        events: {click(event) {event.stopPropagation();}}
+    }));
+});
 
 //#endregion
 

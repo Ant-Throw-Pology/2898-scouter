@@ -7,10 +7,12 @@
     "build": "bun build src/index.ts src/serviceworker.ts --target=browser --minify --sourcemap=linked --outdir=build --asset-naming='[name].[ext]'"
   },
   "dependencies": {
-    "color": "^4.2.3",
+    "@types/bun": "^1.2.4",
+    "color": "^5.0.0",
     "html5-qrcode": "^2.3.8",
+    "marked": "^15.0.7",
     "pako": "^2.1.0",
-    "papaparse": "^5.5.1",
+    "papaparse": "^5.5.2",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

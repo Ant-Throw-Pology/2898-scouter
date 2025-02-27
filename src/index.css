@@ -14,6 +14,7 @@ body {
 
 a {
     text-decoration: none;
+    cursor: pointer;
 }
 
 a:hover, a:focus {
@@ -43,12 +44,89 @@ a:hover, a:focus {
     color: color-mix(in srgb, var(--color) 70%, var(--bg));
 }
 
-#header a {
-}
-
 #header svg {
     width: 1em;
     height: 1em;
+}
+
+#help-button {
+    cursor: pointer;
+    border: none;
+    margin: 0;
+    padding: 0;
+    font-size: 1em;
+    border-radius: 50%;
+    transition: transform 0.2s ease-out, background-color 0.15s ease;
+    transform: rotate(360deg);
+}
+
+#help-button:hover {
+    transform: rotate(361deg);
+    transition: transform 0.5s cubic-bezier(0.25, 100, 0.5, -50), background-color 0.15s ease;
+}
+
+#help-dialog-c {
+    background-color: rgba(0, 0, 0, 50%);
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3;
+}
+
+.help-dialog {
+    background-color: var(--bg);
+    border: 1px solid #7f7f7f;
+    border-radius: 20px;
+    padding: 10px;
+    width: min(80ch, calc(100% - 200px));
+    height: calc(100% - 200px);
+}
+
+@media screen and ((max-width: 600px) or (max-height: 500px)) {
+    .help-dialog {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: none;
+        border-radius: 0;
+        padding: 25px;
+    }
+}
+
+.help-header {
+    position: relative;
+}
+
+.help-header button {
+    cursor: pointer;
+    font-size: 0.5em;
+    position: absolute;
+    padding: 0.2em 0.3em;
+    top: 0.2em;
+}
+
+.help-header button:nth-child(1) {
+    left: 0;
+}
+
+.help-header button:nth-child(2) {
+    right: 0;
+}
+
+.help-article {
+    display: block;
+    padding: 0.5em;
+    border: 1px solid #7f7f7f;
+    border-radius: 0.4em;
+    text-decoration: none;
+    color: inherit;
+}
+
+.help-article:hover, .help-article:focus {
+    text-decoration: none;
+    background-color: color-mix(in srgb, var(--color) 10%, var(--bg));
 }
 
 @media print {
