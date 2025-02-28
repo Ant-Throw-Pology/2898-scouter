@@ -9,9 +9,10 @@ export function readHelp() {
         if (dir.includes(".")) continue;
         result[dir] = {};
         for (const item of readdirSync(join(import.meta.dir, dir))) {
+            if (!item.endsWith('.md')) continue;
             const html = parse(readFileSync(join(import.meta.dir, dir, item), {encoding: "utf-8"}), {async: false});
             const title = html.match(/<h1>([^<]+)<\/h1>/)?.[1].trim() || item;
-            result[dir][title] = html;
+            result[dir][title] = html.replace(/<a href=/gi, "<a target=\"_blank\" href=");
         }
     }
     return result;

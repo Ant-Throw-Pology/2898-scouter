@@ -7,6 +7,8 @@ import "./favicon-512.png" with {type: "file"};
 import "./favicon-192.png" with {type: "file"};
 import "./screenshots/initial.png" with {type: "file"};
 import "./screenshots/initial-mobile.png" with {type: "file"};
+import "./help/configuration/teams-list-start.png" with {type: "file"};
+import "./help/configuration/teams-list-end.png" with {type: "file"};
 import { ce, makeid, type CEOptions } from "./ce";
 import { Html5Qrcode } from "html5-qrcode";
 import { toDataURL } from "qrcode";
@@ -457,6 +459,7 @@ document.getElementById("help-button")!.addEventListener("click", function creat
             name: "a",
             class: "help-article",
             content: title,
+            contentAsHTML: true,
             href: "javascript:void 0;",
             events: {
                 click() {
@@ -496,6 +499,7 @@ document.getElementById("help-button")!.addEventListener("click", function creat
                                         attrs: {title: "Back"}
                                     }
                                 ],
+                                contentAsHTML: true
                             },
                             content.replace(/<h1>[^<]+<\/h1>/i, "").trim()
                         ],
@@ -798,6 +802,7 @@ document.getElementById("panel-import-configuration")!.addEventListener("transit
         },
         (text, result) => {
             (async () => {
+                console.log(text);
                 if (!text.startsWith(SCOUT_CONF_PREFIX)) return;
                 text = text.slice(SCOUT_CONF_PREFIX.length);
                 if (scanned.has(text)) return; // ignore duplicates
@@ -806,14 +811,16 @@ document.getElementById("panel-import-configuration")!.addEventListener("transit
                 if (!m) return;
                 const n = +m[1], total = +m[2];
                 codes[total] ??= Array(total).fill(undefined);
-                codes[total][n - 1] ??= text;
-                if (codes[total].every(c => c)) {
+                codes[total][n - 1] ??= text.slice(m.length);
+                if (codes[total].every(c => typeof c != "undefined")) {
                     const data = codes[total].join("");
                     const arr = new Uint8Array(data.length);
                     for (let i = 0; i < data.length; i++) {
                         arr[i] = data.charCodeAt(i);
                     }
+                    console.log(arr);
                     const unzipped = ungzip(arr, {to: "string"});
+                    console.log(unzipped);
                     const conf = JSON.parse(unzipped);
                     if (!checkConfiguration(conf)) return;
                     configuration = conf;
@@ -1915,7 +1922,7 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
             );
         }
         const teamNumber = document.getElementById("scout-pits-team-number")!.innerText;
-        const willChange = (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked && (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).valueAsDate?.getTime() || undefined;
+        const willChange = (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked && new Date((document.getElementById("scout-pits-will-change-at") as HTMLInputElement).value).getTime() || undefined;
         const entry: PitsScoutData = {
             type: "pits",
             by: scouterName || "(untitled scouter)",
