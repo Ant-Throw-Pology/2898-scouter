@@ -82,6 +82,7 @@ a:hover, a:focus {
     padding: 10px;
     width: min(80ch, calc(100% - 200px));
     height: calc(100% - 200px);
+    overflow-y: scroll;
 }
 
 @media screen and ((max-width: 600px) or (max-height: 500px)) {
