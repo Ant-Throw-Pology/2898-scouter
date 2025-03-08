@@ -427,71 +427,170 @@ input[type=radio]:checked::before {
     text-wrap: balance;
 }
 
-.create-targets-input {
+#panel-create-configuration {
+    padding-block: 0.5em;
+}
+
+#create-competition {
+    margin-bottom: 0.5em;
+}
+
+#create-sections-c {
+    width: min(80dvw, 80ch);
+    flex-grow: 1;
+    position: relative;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: min(80dvw, 50ch);
+    flex-direction: column;
+    overflow: hidden;
+    margin-block-start: -0.5em;
 }
 
-.create-targets-input > span:nth-child(2) {
-    color: color-mix(in srgb, var(--bg), var(--color) 70%);
-    margin-left: auto;
+.create-sections {
+    overflow-y: scroll;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    padding-block-end: 2.25em;
+    padding-block-start: 1em;
+    padding-inline: 1em;
 }
 
-.create-targets-input > div {
+.create-add-section {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    width: min-content;
+    margin: auto;
+}
+
+.create-section {
     border: 1px solid var(--color);
+    border-radius: 0.5em;
+    padding: 0.5em;
+    display: flex;
+    gap: 0.5em;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
+}
+
+.create-section-remove {
+    margin-inline-start: auto;
+}
+
+.create-section-add-before {
+    font-size: 0.6em;
+    position: absolute;
+    top: -1.1em;
+    left: 0;
+    right: 0;
+    width: min-content;
+    margin: auto;
+    transition: opacity 0.15s ease;
+}
+
+.create-section-reorder {
+    font-size: 0.5em;
+    position: absolute;
+    top: -1.2em;
+    right: -1.2em;
+    width: min-content;
+    margin: auto;
+    transition: opacity 0.15s ease;
+}
+
+.create-section:first-child .create-section-reorder {
+    display: none;
+}
+
+.create-section:not(:hover):not(:focus-within) .create-section-add-before:not(:focus-visible),
+.create-section:not(:hover):not(:focus-within) .create-section-reorder:not(:focus-visible) {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.create-section-items {
     width: 100%;
-    min-height: 1.5em;
-    padding: 0.25em;
-    border-radius: 0.2em;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 0.25em;
-    cursor: text;
+    flex-direction: column;
+    gap: 0.35em;
+    position: relative;
+    padding-block-end: 2em;
 }
 
-.create-targets-input > div > span.target {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
+.create-section-add-item {
+    font-size: 0.75em;
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    width: min-content;
+    margin: auto;
+}
+
+.create-section-item {
     border: 1px solid var(--color);
-    padding: 0.25em;
-    border-radius: 0.2em;
-    margin-inline-end: 0.5em;
-    user-select: none;
+    padding: 0.35em;
+    border-radius: 0.35em;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
 }
 
-.create-targets-input > div > span.target > button {
-    border: none;
-    border-radius: 0;
-    margin: 0;
-    padding: 0;
-    background-color: transparent;
-    font-size: 1em;
-    margin-inline-start: 0.8em;
-    width: 1em;
-    height: 1em;
-    display: inline-block;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-    will-change: transform;
+.create-section-item-remove {
+    font-size: 0.75em;
 }
 
-.create-targets-input > div > span.target > button:hover {
-    transform: scale(1.1);
+.create-section-item-add-before {
+    font-size: 0.6em;
+    position: absolute;
+    top: -1.1em;
+    left: 0;
+    right: 0;
+    width: min-content;
+    margin: auto;
+    transition: opacity 0.15s ease;
 }
 
-.create-targets-input > div:has(span:not(.target):focus-visible) {
-    outline: 1px solid var(--color);
-    outline-offset: 2px;
+.create-section-item-reorder {
+    font-size: 0.5em;
+    position: absolute;
+    top: -1.2em;
+    right: -1.2em;
+    width: min-content;
+    margin: auto;
+    transition: opacity 0.15s ease;
 }
 
-/* make absolutely certain that this rule is only applied if the above is too */
-.create-targets-input > div:has(span:not(.target):focus-visible) > span:not(.target):focus-visible {
-    outline: none;
+.create-section-item:first-child .create-section-item-reorder {
+    display: none;
+}
+
+.create-section-item:not(:hover):not(:focus-within) .create-section-item-add-before:not(:focus-visible),
+.create-section-item:not(:hover):not(:focus-within) .create-section-item-reorder:not(:focus-visible) {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.create-section-item-options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    margin-block-start: 0.3em;
+}
+
+.create-section-item-options textarea {
+    resize: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.create-section-item-options input {
+    display: inline;
 }
 
 #panel-teams, #panel-team-entries {
@@ -511,7 +610,7 @@ input[type=radio]:checked::before {
     overflow: scroll;
     width: min(80dvw, 80ch);
     display: grid;
-    grid-template-columns: min-content minmax(max-content, auto) max-content minmax(max-content, auto) max-content;
+    grid-template-columns: min-content minmax(min-content, 40%) max-content minmax(max-content, auto) max-content;
     align-content: start;
 }
 
@@ -720,7 +819,7 @@ input[type=radio]:checked::before {
     flex-wrap: wrap;
 }
 
-.scout-row input:not([type=number]) {
+.scout-row input:not([type=number]):not([type=checkbox]):not([type=range]) {
     flex-grow: 1;
 }
 

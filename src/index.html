@@ -160,35 +160,7 @@
                 <h2>Create Configuration</h2>
                 <label for="create-competition">Competition</label>
                 <input type="text" name="create-competition" id="create-competition">
-                <div class="create-targets-input">
-                    <span>Score targets</span>
-                    <span>type an item, press Enter to add</span>
-                    <div id="create-score-targets-c">
-                        <span contenteditable="plaintext-only" id="create-score-targets">&#10;</span>
-                    </div>
-                </div>
-                <div class="create-targets-input">
-                    <span>Mobility <span style="font-size: 0.75em;">(where the robot can fit)</span></span>
-                    <span>type an item, press Enter to add</span>
-                    <div id="create-mobility-c">
-                        <span contenteditable="plaintext-only" id="create-mobility">&#10;</span>
-                    </div>
-                </div>
-                <div class="create-targets-input">
-                    <span>Other (yes/no)</span>
-                    <span>type an item, press Enter to add</span>
-                    <div id="create-other-bool-c">
-                        <span contenteditable="plaintext-only" id="create-other-bool">&#10;</span>
-                    </div>
-                </div>
-                <div class="create-targets-input">
-                    <span>Other (scale)</span>
-                    <span>type an item, press Enter to add</span>
-                    <div id="create-other-scale-c">
-                        <span contenteditable="plaintext-only" id="create-other-scale">&#10;</span>
-                    </div>
-                </div>
-                <br>
+                <div id="create-sections-c"></div>
                 <div>
                     <button id="create-cancel">Cancel</button>
                     <button id="create-done">Done</button>
@@ -275,15 +247,6 @@
                         <span>Cycle time <span style="font-size: 0.6em;">(seconds, approx)</span></span>
                         <span class="view-input" id="view-stands-cycle-time"></span>
                     </div>
-                </div>
-                <div id="view-stands-sec-scoring" class="view-section">
-                    <h2>Scoring</h2>
-                </div>
-                <div id="view-stands-sec-mobility" class="view-section">
-                    <h2>Mobility</h2>
-                </div>
-                <div id="view-stands-sec-other" class="view-section">
-                    <h2>Other</h2>
                 </div>
                 <div id="view-stands-footer" class="view-section">
                     <button id="view-stands-back-2">Back</button>
@@ -397,15 +360,6 @@
                         <input type="number" name="scout-stands-cycle-time" id="scout-stands-cycle-time" min="0">
                     </div>
                 </div>
-                <div id="scout-stands-sec-scoring" class="scout-section">
-                    <h2>Scoring</h2>
-                </div>
-                <div id="scout-stands-sec-mobility" class="scout-section">
-                    <h2>Mobility</h2>
-                </div>
-                <div id="scout-stands-sec-other" class="scout-section">
-                    <h2>Other</h2>
-                </div>
                 <div id="scout-stands-footer" class="scout-section">
                     <button id="scout-stands-save">Save</button>
                 </div>
@@ -442,15 +396,6 @@
                         <input type="number" name="scout-pits-cycle-time" id="scout-pits-cycle-time" min="0">
                     </div>
                 </div>
-                <div id="scout-pits-sec-scoring" class="scout-section">
-                    <h2>Scoring</h2>
-                </div>
-                <div id="scout-pits-sec-mobility" class="scout-section">
-                    <h2>Mobility</h2>
-                </div>
-                <div id="scout-pits-sec-other" class="scout-section">
-                    <h2>Other</h2>
-                </div>
                 <div id="scout-pits-footer" class="scout-section">
                     <label>
                         <input type="checkbox" name="scout-pits-will-change" id="scout-pits-will-change">
@@ -479,7 +424,7 @@
                     <option value="allStands">All Stands Entries</option>
                     <option value="latestPits">Latest Pits Entries</option>
                     <option value="latestStands">Latest Stands Entries</option>
-                    <option value="standsAggregation">Aggregation of Stands Entries</option>
+                    <!-- <option value="standsAggregation">Aggregation of Stands Entries</option> -->
                 </select>
                 <h3>Generate</h3>
                 <div>

@@ -25,12 +25,57 @@ const helpText = readHelp();
 
 //#region Data Interfaces
 
+interface ScoutItemBase {
+    label: string;
+    optional?: boolean;
+}
+
+interface SelectScoutItem extends ScoutItemBase {
+    type: "select";
+    options: string[];
+}
+
+interface ShortTextScoutItem extends ScoutItemBase {
+    type: "short-text";
+    suggestions?: string[];
+}
+
+interface TextScoutItem extends ScoutItemBase {
+    type: "text";
+}
+
+interface NumberScoutItem extends ScoutItemBase {
+    type: "number";
+    min?: number;
+    max?: number;
+    default?: number;
+    step?: number;
+}
+
+interface SliderScoutItem extends ScoutItemBase {
+    type: "slider";
+    min: number;
+    max: number;
+    default: number;
+    step?: number;
+}
+
+interface CheckboxScoutItem extends ScoutItemBase {
+    type: "checkbox";
+}
+
+type ScoutItem = SelectScoutItem | ShortTextScoutItem | TextScoutItem | NumberScoutItem | SliderScoutItem | CheckboxScoutItem;
+
+interface ScoutSection {
+    title: string;
+    stands: boolean;
+    pits: boolean;
+    items: ScoutItem[];
+}
+
 interface SeasonConfig {
     competition: string;
-    scoring: string[];
-    mobility: string[];
-    otherBool: string[];
-    otherScale: string[];
+    sections: ScoutSection[];
 }
 
 interface Team {
@@ -53,10 +98,7 @@ interface PitsScoutData extends BaseScoutData {
     drivetrain: string;
     leds: string;
     cycleTime: number;
-    scoring: {[x: string]: string};
-    mobility: {[x: string]: string};
-    otherBool: {[x: string]: boolean};
-    otherScale: {[x: string]: string};
+    data: {[x: string]: {[x: string]: string | number | boolean}};
     willChange?: number;
 }
 
@@ -76,10 +118,7 @@ interface StandsScoutData extends BaseScoutData {
     wereCarried: boolean;
     cycleTime: number;
     driveRating: number;
-    scoring: {[x: string]: string};
-    mobility: {[x: string]: string};
-    otherBool: {[x: string]: boolean};
-    otherScale: {[x: string]: string};
+    data: {[x: string]: {[x: string]: string | number | boolean}};
 }
 
 type ScoutData = PitsScoutData | StandsScoutData;
@@ -120,6 +159,8 @@ function capitalizeFirst(str: string) {
     return str[0].toUpperCase() + str.slice(1);
 }
 
+const panelHistory: string[] = [currentPanel];
+
 async function switchToPanel(panel: string, detail?: any) {
     const el1 = document.getElementById("panel-" + currentPanel)!;
     const el2 = document.getElementById("panel-" + panel)!;
@@ -128,11 +169,20 @@ async function switchToPanel(panel: string, detail?: any) {
         {opacity: 0}
     ], {duration: 150, easing: "ease", fill: "both"}).finished;
     el2.inert = false;
-    currentPanel = panel;
+    panelHistory.push(currentPanel = panel);
+    while (panelHistory.length > 10) panelHistory.shift();
     el2.dispatchEvent(new CustomEvent("transitionedto", {bubbles: false, cancelable: false, detail}));
     await el2.animate([
         {opacity: 1}
     ], {duration: 150, easing: "ease", fill: "both"}).finished;
+}
+
+async function back(detail?: any) {
+    const lastPanel = panelHistory.pop();
+    const panel = panelHistory.at(-1);
+    if (panel) {
+        await switchToPanel(panel);
+    } else if (lastPanel) panelHistory.push(lastPanel);
 }
 
 function pulseColor(element: HTMLElement, color: string, animationOptions: KeyframeEffectOptions = {duration: 500}) {
@@ -140,6 +190,7 @@ function pulseColor(element: HTMLElement, color: string, animationOptions: Keyfr
     let e: Element | null = element;
     while (e && !(e instanceof HTMLInputElement || e instanceof HTMLSelectElement || e instanceof HTMLTextAreaElement)) e = e.firstElementChild || e.nextElementSibling;
     if (e) e.focus();
+    else element.focus();
     return element.animate([
         {backgroundColor: Color(color).darken(0.6).toString(), color, borderColor: color},
         {backgroundColor: window.getComputedStyle(element).backgroundColor}
@@ -242,10 +293,10 @@ function masonry(elements: HTMLElement[], numCols: number, leadingRows: number =
     }
 }
 
-function flattenObject(obj: {[x: string]: any}, _result: {[x: string]: any} = {}, _prefix: string = "") {
+function flattenObject(obj: {[x: string]: any}, splitter: string = ".", _result: {[x: string]: any} = {}, _prefix: string = "") {
     for (const [key, value] of Object.entries(obj)) {
         if (typeof value == "object" && value !== null) {
-            flattenObject(value, _result, _prefix + key + ".");
+            flattenObject(value, splitter, _result, _prefix + key + splitter);
         } else {
             _result[_prefix + key] = value;
         }
@@ -370,13 +421,31 @@ function checkTeam(value: unknown): value is Team {
         )
 }
 
+function checkItem(value: unknown): value is ScoutItem {
+    return typeof value == "object" && value !== null &&
+        "label" in value && typeof value.label == "string" &&
+        "type" in value && typeof value.type == "string" && (
+            value.type == "select" && "options" in value && Array.isArray(value.options) && value.options.every(v => typeof v == "string") ||
+            value.type == "short-text" && (!("suggestions" in value) || typeof value.suggestions == "undefined" || Array.isArray(value.suggestions) && value.suggestions.every(v => typeof v == "string")) ||
+            value.type == "text" ||
+            value.type == "number" && (!("min" in value) || typeof value.min == "undefined" || typeof value.min == "number") && (!("default" in value) || typeof value.default == "undefined" || typeof value.default == "number") && (!("max" in value) || typeof value.max == "undefined" || typeof value.max == "number") && (!("step" in value) || typeof value.step == "undefined" || typeof value.step == "number") ||
+            value.type == "slider" && "min" in value && typeof value.min == "number" && "default" in value && typeof value.default == "number" && "max" in value && typeof value.max == "number" && (!("step" in value) || typeof value.step == "undefined" || typeof value.step == "undefined") ||
+            value.type == "checkbox"
+        )
+}
+
+function checkSection(value: unknown): value is ScoutSection {
+    return typeof value == "object" && value !== null &&
+        "title" in value && typeof value.title == "string" &&
+        "stands" in value && typeof value.stands == "boolean" &&
+        "pits" in value && typeof value.pits == "boolean" &&
+        "items" in value && Array.isArray(value.items) && value.items.every(checkItem)
+}
+
 function checkConfiguration(value: unknown): value is Configuration {
     return typeof value == "object" && value !== null &&
         "competition" in value && typeof value.competition == "string" &&
-        "scoring" in value && Array.isArray(value.scoring) && value.scoring.every(v => typeof v == "string") &&
-        "mobility" in value && Array.isArray(value.mobility) && value.mobility.every(v => typeof v == "string") &&
-        "otherBool" in value && Array.isArray(value.otherBool) && value.otherBool.every(v => typeof v == "string") &&
-        "otherScale" in value && Array.isArray(value.otherScale) && value.otherScale.every(v => typeof v == "string") &&
+        "sections" in value && Array.isArray(value.sections) && value.sections.every(checkSection) &&
         "teams" in value && Array.isArray(value.teams) && value.teams.every(checkTeam)
 }
 
@@ -386,10 +455,7 @@ function checkEntry(value: unknown): value is ScoutData {
             "type" in value && value.type === "pits" &&
             "by" in value && typeof value.by == "string" &&
             "when" in value && typeof value.when == "number" &&
-            "scoring" in value && typeof value.scoring == "object" && value.scoring !== null && Object.entries(value.scoring).every(([k2, v2]) => typeof v2 == "string") &&
-            "mobility" in value && typeof value.mobility == "object" && value.mobility !== null && Object.entries(value.mobility).every(([k2, v2]) => typeof v2 == "string") &&
-            "otherBool" in value && typeof value.otherBool == "object" && value.otherBool !== null && Object.entries(value.otherBool).every(([k2, v2]) => typeof v2 == "boolean") &&
-            "otherScale" in value && typeof value.otherScale == "object" && value.otherScale !== null && Object.entries(value.otherScale).every(([k2, v2]) => typeof v2 == "string") &&
+            "data" in value && typeof value.data == "object" && value.data !== null && Object.entries(value.data).every(([, v2]) => Object.entries(v2).every(([k3, v3]) => typeof v3 == "string" || typeof v3 == "number" || typeof v3 == "boolean")) &&
             "drivetrain" in value && typeof value.drivetrain == "string" &&
             "leds" in value && typeof value.leds == "string" &&
             "cycleTime" in value && typeof value.cycleTime == "number" && (
@@ -401,10 +467,7 @@ function checkEntry(value: unknown): value is ScoutData {
             "type" in value && value.type === "stands" &&
             "by" in value && typeof value.by == "string" &&
             "when" in value && typeof value.when == "number" &&
-            "scoring" in value && typeof value.scoring == "object" && value.scoring !== null && Object.entries(value.scoring).every(([k2, v2]) => typeof v2 == "string") &&
-            "mobility" in value && typeof value.mobility == "object" && value.mobility !== null && Object.entries(value.mobility).every(([k2, v2]) => typeof v2 == "string") &&
-            "otherBool" in value && typeof value.otherBool == "object" && value.otherBool !== null && Object.entries(value.otherBool).every(([k2, v2]) => typeof v2 == "boolean") &&
-            "otherScale" in value && typeof value.otherScale == "object" && value.otherScale !== null && Object.entries(value.otherScale).every(([k2, v2]) => typeof v2 == "string") &&
+            "data" in value && typeof value.data == "object" && value.data !== null && Object.entries(value.data).every(([, v2]) => Object.entries(v2).every(([k3, v3]) => typeof v3 == "string" || typeof v3 == "number" || typeof v3 == "boolean")) &&
             "matchNumber" in value && typeof value.matchNumber == "number" &&
             "matchType" in value && typeof value.matchType == "string" &&
             "allianceScore" in value && typeof value.allianceScore == "number" &&
@@ -578,29 +641,32 @@ document.getElementById("onboarding-1-next")!.addEventListener("click", async ()
 //#region Panel: Onboarding 2
 
 document.getElementById("panel-onboarding-2")!.addEventListener("transitionedto", () => {
-    const entries = Object.entries(localStorage).map(([k, v]) => {
-        try {
-            const isData = checkStorageData(JSON.parse(v));
-            const isPrefixed = k.startsWith(STORAGE_PREFIX);
-            if (!isPrefixed && isData) {
-                const newKey = STORAGE_PREFIX + k;
-                console.log(`Renaming key '${k}' to '${newKey}'`);
-                localStorage.setItem(newKey, v);
-                localStorage.removeItem(k);
-                return [newKey, v] as [string, StorageData];
-            }
-            if (isPrefixed && isData) return [k, v] as [string, StorageData];
-        } catch (e) {}
-        return undefined;
-    }).filter(e => typeof e != "undefined");
-    const el = document.getElementById("onboarding-storage-local-items") as HTMLDataListElement;
-    el.childNodes.forEach(n => n.remove());
-    for (const [key] of entries) {
-        el.appendChild(ce({
-            name: "option",
-            content: key.replace(STORAGE_PREFIX, "")
-        }));
+    {
+        const entries = Object.entries(localStorage).map(([k, v]) => {
+            try {
+                const isData = checkStorageData(JSON.parse(v));
+                const isPrefixed = k.startsWith(STORAGE_PREFIX);
+                if (!isPrefixed && isData) {
+                    const newKey = STORAGE_PREFIX + k;
+                    console.log(`Renaming key '${k}' to '${newKey}'`);
+                    localStorage.setItem(newKey, v);
+                    localStorage.removeItem(k);
+                    return [newKey, v] as [string, StorageData];
+                }
+                if (isPrefixed && isData) return [k, v] as [string, StorageData];
+            } catch (e) {}
+            return undefined;
+        }).filter(e => typeof e != "undefined");
+        const el = document.getElementById("onboarding-storage-local-items") as HTMLDataListElement;
+        el.childNodes.forEach(n => n.remove());
+        for (const [key] of entries) {
+            el.appendChild(ce({
+                name: "option",
+                content: key.replace(STORAGE_PREFIX, "")
+            }));
+        }
     }
+    directory = storageKey = configuration = entries = storageData = undefined;
 });
 
 document.getElementById("onboarding-storage-folder")!.addEventListener("click", async () => {
@@ -675,7 +741,7 @@ document.getElementById("onboarding-2-next")!.addEventListener("click", async ()
 //#region Panel: Select Configuration
 
 document.getElementById("config-back")!.addEventListener("click", async () => {
-    await switchToPanel("onboarding-2");
+    await back();
 });
 
 document.getElementById("config-import")!.addEventListener("click", async () => {
@@ -841,76 +907,325 @@ document.getElementById("panel-import-configuration")!.addEventListener("transit
 
 //#region Panel: Create Configuration
 
-document.getElementById("panel-create-configuration")!.addEventListener("transitionedto", () => {
-    document.querySelectorAll(".create-targets-input > div > span.target").forEach(el => el.remove());
-    document.getElementById("create-score-targets")!.innerText = "\n";
-    document.getElementById("create-mobility")!.innerText = "\n";
-    document.getElementById("create-other-bool")!.innerText = "\n";
-    document.getElementById("create-other-scale")!.innerText = "\n";
-});
-
-[
-    document.getElementById("create-score-targets-c")!,
-    document.getElementById("create-mobility-c")!,
-    document.getElementById("create-other-bool-c")!,
-    document.getElementById("create-other-scale-c")!,
-].forEach(el => el.addEventListener("click", function(this: HTMLDivElement) {
-    (this.lastElementChild as HTMLElement).focus();
-}));
-
-[
-    document.getElementById("create-score-targets")!,
-    document.getElementById("create-mobility")!,
-    document.getElementById("create-other-bool")!,
-    document.getElementById("create-other-scale")!,
-].forEach(el => el.addEventListener("input", function(this: HTMLSpanElement) {
-    let nodes = Array.from(this.childNodes);
-    nodes = nodes.slice((nodes.findLastIndex(n => n.nodeType == Node.ELEMENT_NODE) + 1));
-    let text = nodes.map(n => (n as Text).data).join("");
-    if (text.endsWith("\n")) text = text.slice(0, -1);
-    if (text.includes("\n")) {
-        for (const n of nodes.slice(0, -1)) n.remove();
-        this.parentElement!.insertBefore(ce({
-            name: "span",
-            class: "target",
-            content: [
-                text.replace(/\n/g, ""),
-                {
-                    name: "button",
-                    attrs: {
-                        title: "Remove"
-                    },
-                    content: [
-                        {
-                            name: "svg:svg",
-                            attrs: {
-                                xmlns: "http://www.w3.org/2000/svg",
-                                viewBox: "0 0 16 16",
-                            },
-                            content: [
-                                {
-                                    name: "svg:path",
-                                    attrs: {
-                                        d: "M2,2 L14,14 M14,2 L2,14",
-                                    },
-                                    style: {
-                                        stroke: "var(--color)",
-                                        strokeWidth: "1"
-                                    }
-                                }
-                            ],
-                        }
-                    ],
-                    events: {
-                        click() {
-                            this.parentElement!.remove();
-                        }
+function createSectionItemTypeChange(item: HTMLDivElement) {
+    Array.from(item.children).slice(5).forEach(el => el.remove());
+    switch (item.querySelector<HTMLSelectElement>(".create-section-item-type-select")!.value) {
+        case "select": {
+            item.appendChild(ce({
+                name: "div",
+                class: "create-section-item-options",
+                content: [
+                    {
+                        name: "label",
+                        content: [
+                            "List choices here, one per line.",
+                            {
+                                name: "textarea",
+                                rows: 4,
+                                class: "create-section-item-select-options",
+                                value: "Consistently\nGenerally\nRarely\nNever",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
                     }
-                }
-            ]
-        }), this);
+                ]
+            }));
+            break;
+        }
+        case "short-text": {
+            item.appendChild(ce({
+                name: "div",
+                class: "create-section-item-options",
+                content: [
+                    {
+                        name: "label",
+                        content: [
+                            "List optional suggestions here, one per line.",
+                            {
+                                name: "textarea",
+                                rows: 4,
+                                class: "create-section-item-short-text-suggestions",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    }
+                ]
+            }));
+            break;
+        }
+        case "text": break;
+        case "number": {
+            item.appendChild(ce({
+                name: "div",
+                class: "create-section-item-options",
+                content: [
+                    {
+                        name: "label",
+                        content: [
+                            "Minimum value (optional) ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-number-min",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Default value (optional) ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-number-default",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Maximum value (optional) ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-number-max",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Step between values (optional) ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-number-step",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    }
+                ]
+            }));
+            break;
+        }
+        case "slider": {
+            item.appendChild(ce({
+                name: "div",
+                class: "create-section-item-options",
+                content: [
+                    {
+                        name: "label",
+                        content: [
+                            "Minimum value ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-slider-min",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Default value ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-slider-default",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Maximum value ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-slider-max",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    },
+                    {
+                        name: "label",
+                        content: [
+                            "Step between values (optional) ",
+                            {
+                                name: "input",
+                                type: "number",
+                                class: "create-section-item-slider-step",
+                                attrs: {name: makeid(16, 64)}
+                            }
+                        ]
+                    }
+                ]
+            }));
+            break;
+        }
+        case "checkbox": break;
     }
-}));
+}
+
+function createSectionAddItem(section: HTMLDivElement) {
+    const item = section.querySelector(".create-section-items")!.insertBefore(ce({
+        name: "div",
+        class: "create-section-item",
+        content: [
+            {
+                name: "label",
+                content: [
+                    "Label ",
+                    {
+                        name: "input",
+                        style: {display: "inline"},
+                        class: "create-section-item-label",
+                        type: "text",
+                        attrs: {name: makeid(16, 64)}
+                    }
+                ]
+            },
+            {
+                name: "label",
+                content: [
+                    "Type ",
+                    {
+                        name: "select",
+                        class: "create-section-item-type-select",
+                        style: {display: "inline"},
+                        content: [
+                            {name: "option", value: "select", content: "Choice"},
+                            {name: "option", value: "short-text", content: "Short Text", selected: true},
+                            {name: "option", value: "text", content: "Text"},
+                            {name: "option", value: "number", content: "Number"},
+                            {name: "option", value: "slider", content: "Number Slider"},
+                            {name: "option", value: "checkbox", content: "Checkbox"}
+                        ],
+                        attrs: {name: makeid(16, 64)},
+                        events: {change() {createSectionItemTypeChange(item)}}
+                    }
+                ]
+            },
+            {
+                name: "button",
+                class: "create-section-item-remove",
+                content: "\xd7",
+                events: {click() {item.remove();}}
+            },
+            {
+                name: "button",
+                class: "create-section-item-add-before",
+                content: "+",
+                events: {click() {createAddSection(section)}}
+            },
+            {
+                name: "button",
+                class: "create-section-item-reorder",
+                content: "\u21c5",
+                events: {click() {
+                    section.querySelector(".create-section-items")!.insertBefore(item, item.previousElementSibling);
+                }}
+            }
+        ]
+    }), section.querySelector(".create-section-add-item"));
+    createSectionItemTypeChange(item);
+}
+
+function createAddSection(before: Node | null = null) {
+    const titleName = makeid(16, 64), standsName = makeid(16, 64), pitsName = makeid(16, 64);
+    const section = document.querySelector(".create-sections")!.insertBefore(ce({
+        name: "div",
+        class: "create-section",
+        content: [
+            {
+                name: "input",
+                type: "text",
+                class: "create-section-title",
+                attrs: {name: titleName}
+            },
+            {
+                name: "label",
+                content: [
+                    {
+                        name: "input",
+                        type: "checkbox",
+                        class: "create-section-show-in-stands",
+                        checked: true,
+                        attrs: {name: standsName}
+                    },
+                    "Stands"
+                ]
+            },
+            {
+                name: "label",
+                content: [
+                    {
+                        name: "input",
+                        type: "checkbox",
+                        class: "create-section-show-in-pits",
+                        checked: true,
+                        attrs: {name: pitsName}
+                    },
+                    "Pits"
+                ]
+            },
+            {
+                name: "button",
+                class: "create-section-remove",
+                content: "\xd7",
+                events: {click() {section.remove();}}
+            },
+            {
+                name: "button",
+                class: "create-section-add-before",
+                content: "+",
+                events: {click() {createAddSection(section)}}
+            },
+            {
+                name: "button",
+                class: "create-section-reorder",
+                content: "\u21c5",
+                events: {click() {
+                    document.querySelector(".create-sections")!.insertBefore(section, section.previousElementSibling);
+                }}
+            },
+            {
+                name: "div",
+                class: "create-section-items",
+                content: [
+                    {
+                        name: "button",
+                        class: "create-section-add-item",
+                        content: "+",
+                        events: {click() {createSectionAddItem(section)}}
+                    }
+                ]
+            }
+        ]
+    }), before);
+    section.scrollIntoView();
+    createSectionAddItem(section);
+}
+
+document.getElementById("panel-create-configuration")!.addEventListener("transitionedto", () => {
+    Array.from(document.getElementById("create-sections-c")!.children).forEach(el => el.remove());
+    document.getElementById("create-sections-c")!.appendChild(ce({
+        name: "div",
+        class: "create-sections"
+    }));
+    document.getElementById("create-sections-c")!.appendChild(ce({
+        name: "button",
+        class: "create-add-section",
+        content: "+",
+        events: {click() {createAddSection()}}
+    }));
+    createAddSection();
+});
 
 document.getElementById("create-cancel")!.addEventListener("click", async () => {
     await switchToPanel("configuration");
@@ -919,38 +1234,9 @@ document.getElementById("create-cancel")!.addEventListener("click", async () => 
 document.getElementById("create-done")!.addEventListener("click", async () => {
     const competition = (document.getElementById("create-competition") as HTMLInputElement).value;
     if (!competition) {
-        (document.getElementById("create-competition") as HTMLInputElement).animate([
-            {backgroundColor: "#f00", color: "#f00"},
-            {},
-        ], {
-            duration: 300,
-        });
+        pulseColor(document.getElementById("create-competition")!, "#f00");
         return;
     }
-    const scoring = Array.from(document.querySelectorAll("#create-score-targets-c > span.target"))
-        .map(el =>
-            Array.from(el.childNodes)
-                .filter(n => n.nodeType == Node.TEXT_NODE)
-                .map(n => (n as Text).data).join("")
-        );
-    const mobility = Array.from(document.querySelectorAll("#create-mobility-c > span.target"))
-        .map(el =>
-            Array.from(el.childNodes)
-                .filter(n => n.nodeType == Node.TEXT_NODE)
-                .map(n => (n as Text).data).join("")
-        );
-    const otherBool = Array.from(document.querySelectorAll("#create-other-bool-c > span.target"))
-        .map(el =>
-            Array.from(el.childNodes)
-                .filter(n => n.nodeType == Node.TEXT_NODE)
-                .map(n => (n as Text).data).join("")
-        );
-    const otherScale = Array.from(document.querySelectorAll("#create-other-scale-c > span.target"))
-        .map(el =>
-            Array.from(el.childNodes)
-                .filter(n => n.nodeType == Node.TEXT_NODE)
-                .map(n => (n as Text).data).join("")
-        );
     const id = makeid(16, 16);
     (document.getElementById("config-presets")!.appendChild(ce({
         name: "span",
@@ -962,10 +1248,71 @@ document.getElementById("create-done")!.addEventListener("click", async () => {
                     name: "config-preset",
                     value: JSON.stringify({
                         competition,
-                        scoring,
-                        mobility,
-                        otherBool,
-                        otherScale
+                        sections: Array.from(document.querySelector(".create-sections")?.querySelectorAll(".create-section") || []).map(section => ({
+                            title: throwAndPulseColorIf(
+                                section.querySelector<HTMLInputElement>(".create-section-title")?.value || "",
+                                v => !v,
+                                section.querySelector<HTMLInputElement>(".create-section-title")!,
+                                "#f00",
+                                0
+                            ),
+                            items: Array.from(section.querySelectorAll<HTMLDivElement>(".create-section-item")).map(item => {
+                                const result: Partial<ScoutItem> = {
+                                    label: throwAndPulseColorIf(
+                                        item.querySelector<HTMLInputElement>(".create-section-item-label")?.value || "",
+                                        v => !v,
+                                        item.querySelector<HTMLInputElement>(".create-section-item-label")!,
+                                        "#f00",
+                                        0
+                                    ),
+                                    type: throwAndPulseColorIf(
+                                        item.querySelector<HTMLInputElement>(".create-section-item-type-select")?.value || "",
+                                        v => !v,
+                                        item.querySelector<HTMLInputElement>(".create-section-item-type-select")!,
+                                        "#f00",
+                                        0
+                                    ) as ScoutItem["type"]
+                                };
+                                switch (result.type) {
+                                    case "select": {
+                                        result.options = item.querySelector<HTMLTextAreaElement>(".create-section-item-select-options")!.value.trim().split("\n").map(v => v.trim())
+                                        if (!result.options) pulseColor(item.querySelector<HTMLTextAreaElement>(".create-section-item-select-options")!, "#f00");
+                                        break;
+                                    }
+                                    case "short-text": {
+                                        result.suggestions = item.querySelector<HTMLTextAreaElement>(".create-section-item-short-text-suggestions")!.value.trim().split("\n").map(v => v.trim()) || undefined;
+                                        break;
+                                    }
+                                    case "text": break;
+                                    case "number": {
+                                        result.min = +item.querySelector<HTMLInputElement>(".create-section-item-number-min")!.value;
+                                        if (isNaN(result.min)) result.min = undefined;
+                                        result.default = +item.querySelector<HTMLInputElement>(".create-section-item-number-default")!.value;
+                                        if (isNaN(result.default)) result.default = undefined;
+                                        result.max = +item.querySelector<HTMLInputElement>(".create-section-item-number-max")!.value;
+                                        if (isNaN(result.max)) result.max = undefined;
+                                        result.step = +item.querySelector<HTMLInputElement>(".create-section-item-number-step")!.value;
+                                        if (isNaN(result.step)) result.step = undefined;
+                                        break;
+                                    }
+                                    case "slider": {
+                                        result.min = +item.querySelector<HTMLInputElement>(".create-section-item-slider-min")!.value;
+                                        if (isNaN(result.min)) pulseColor(item.querySelector<HTMLInputElement>(".create-section-item-slider-min")!, "#f00");
+                                        result.default = +item.querySelector<HTMLInputElement>(".create-section-item-slider-default")!.value;
+                                        if (isNaN(result.default)) pulseColor(item.querySelector<HTMLInputElement>(".create-section-item-slider-default")!, "#f00");
+                                        result.max = +item.querySelector<HTMLInputElement>(".create-section-item-slider-max")!.value;
+                                        if (isNaN(result.max)) pulseColor(item.querySelector<HTMLInputElement>(".create-section-item-slider-max")!, "#f00");
+                                        result.step = +item.querySelector<HTMLInputElement>(".create-section-item-slider-step")!.value;
+                                        if (isNaN(result.step)) result.step = undefined;
+                                        break;
+                                    }
+                                    case "checkbox": break;
+                                }
+                                return result as ScoutItem;
+                            }),
+                            stands: section.querySelector<HTMLInputElement>(".create-section-show-in-stands")!.checked,
+                            pits: section.querySelector<HTMLInputElement>(".create-section-show-in-pits")!.checked
+                        } satisfies ScoutSection))
                     } satisfies SeasonConfig),
                     id: "preset-" + id
                 }
@@ -1104,7 +1451,7 @@ document.getElementById("teams-skip-list")!.addEventListener("click", () => {
 });
 
 document.getElementById("teams-back")!.addEventListener("click", async () => {
-    await switchToPanel("onboarding-2");
+    await back();
 });
 
 document.getElementById("teams-import-csv")!.addEventListener("click", async () => {
@@ -1428,86 +1775,31 @@ document.getElementById("panel-view-stands")!.addEventListener("transitionedto",
     document.getElementById("view-stands-dropped-items")!.dataset.checked = String(entry.droppedItems);
     document.getElementById("view-stands-drive-rating")!.innerText = String(entry.driveRating);
     document.getElementById("view-stands-cycle-time")!.innerText = String(entry.cycleTime);
-    const secScoring = document.getElementById("view-stands-sec-scoring")!;
-    const secMobility = document.getElementById("view-stands-sec-mobility")!;
-    const secOther = document.getElementById("view-stands-sec-other")!;
+    const footer = document.getElementById("view-stands-footer")!;
+    document.querySelectorAll("#panel-view-stands > .view-section.view-section-seasonal").forEach(el => el.remove());
     const secMatch = document.getElementById("view-stands-sec-match")!;
     const secDriving = document.getElementById("view-stands-sec-driving")!;
-    const sections = [
-        secMatch,
-        secDriving,
-        secScoring,
-        secMobility,
-        secOther
-    ];
-    Array.from(secScoring.children).forEach(el => el.remove());
-    Array.from(secMobility.children).forEach(el => el.remove());
-    Array.from(secOther.children).forEach(el => el.remove());
-    if (configuration.scoring.length > 0) {
-        secScoring.appendChild(ce({name: "h2", content: "Scoring"}));
-        secScoring.style.removeProperty("display");
-        for (const item of configuration.scoring) {
-            const index = kebabify(item);
-            secScoring.appendChild(ce({
+    const sections = [secMatch, secDriving];
+    for (const [title, items] of Object.entries(entry.data)) {
+        const el = ce({
+            name: "div",
+            class: ["view-section", "view-section-seasonal"],
+            content: [
+                {name: "h2", content: title}
+            ]
+        });
+        sections.push(el);
+        document.getElementById("panel-view-stands")!.insertBefore(el, footer);
+        for (const [label, value] of Object.entries(items)) {
+            el.appendChild(ce({
                 name: "p",
                 content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.scoring[index])
+                    {name: "strong", content: `${label}:`},
+                    ` ${typeof value == "undefined" ? "-" : value}`
                 ]
             }));
         }
-    } else secScoring.style.display = "none";
-    if (configuration.mobility.length > 0) {
-        secMobility.appendChild(ce({name: "h2", content: "Mobility"}));
-        secMobility.style.removeProperty("display");
-        for (const item of configuration.mobility) {
-            const index = kebabify(item);
-            secMobility.appendChild(ce({
-                name: "p",
-                content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.mobility[index])
-                ]
-            }));
-        }
-    } else secMobility.style.display = "none";
-    if (configuration.otherBool.length + configuration.otherScale.length > 0) {
-        secOther.appendChild(ce({name: "h2", content: "Other"}));
-        secOther.style.removeProperty("display");
-        if (configuration.otherBool.length > 0) {
-            secOther.appendChild(ce({
-                name: "div",
-                class: "view-checkboxes-row",
-                content: configuration.otherBool.map(item => {
-                    const index = kebabify(item);
-                    return {
-                        name: "div",
-                        class: "view-row",
-                        content: `${entry.otherBool[index] ? "☑" : "⬜"} ${item}`
-                    } satisfies CEOptions<"div">;
-                })
-            }));
-        }
-        for (const item of configuration.otherScale) {
-            const index = kebabify(item);
-            secOther.appendChild(ce({
-                name: "p",
-                content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.otherScale[index])
-                ]
-            }));
-        }
-    } else secOther.style.display = "none";
+    }
     masonry(sections, 2, 1);
 });
 
@@ -1536,84 +1828,30 @@ document.getElementById("panel-view-pits")!.addEventListener("transitionedto", f
     document.getElementById("view-pits-cycle-time")!.innerText = String(entry.cycleTime);
     document.getElementById("view-pits-will-change")!.dataset.checked = String(entry.willChange);
     document.getElementById("view-pits-will-change-at")!.innerText = entry.willChange && stringifyDate(entry.willChange) || "";
-    const secScoring = document.getElementById("view-pits-sec-scoring")!;
-    const secMobility = document.getElementById("view-pits-sec-mobility")!;
-    const secOther = document.getElementById("view-pits-sec-other")!;
+    const footer = document.getElementById("view-pits-footer")!;
+    document.querySelectorAll("#panel-view-pits > .view-section.view-section-seasonal").forEach(el => el.remove());
     const secRobot = document.getElementById("view-pits-sec-robot")!;
-    const sections = [
-        secRobot,
-        secScoring,
-        secMobility,
-        secOther
-    ];
-    Array.from(secScoring.children).forEach(el => el.remove());
-    Array.from(secMobility.children).forEach(el => el.remove());
-    Array.from(secOther.children).forEach(el => el.remove());
-    if (configuration.scoring.length > 0) {
-        secScoring.appendChild(ce({name: "h2", content: "Scoring"}));
-        secScoring.style.removeProperty("display");
-        for (const item of configuration.scoring) {
-            const index = kebabify(item);
-            secScoring.appendChild(ce({
+    const sections = [secRobot];
+    for (const [title, items] of Object.entries(entry.data)) {
+        const el = ce({
+            name: "div",
+            class: ["view-section", "view-section-seasonal"],
+            content: [
+                {name: "h2", content: title}
+            ]
+        });
+        sections.push(el);
+        document.getElementById("panel-view-pits")!.insertBefore(el, footer);
+        for (const [label, value] of Object.entries(items)) {
+            el.appendChild(ce({
                 name: "p",
                 content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.scoring[index])
+                    {name: "strong", content: `${label}:`},
+                    ` ${typeof value == "undefined" ? "-" : value}`
                 ]
             }));
         }
-    } else secScoring.style.display = "none";
-    if (configuration.mobility.length > 0) {
-        secMobility.appendChild(ce({name: "h2", content: "Mobility"}));
-        secMobility.style.removeProperty("display");
-        for (const item of configuration.mobility) {
-            const index = kebabify(item);
-            secMobility.appendChild(ce({
-                name: "p",
-                content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.mobility[index])
-                ]
-            }));
-        }
-    } else secMobility.style.display = "none";
-    if (configuration.otherBool.length + configuration.otherScale.length > 0) {
-        secOther.appendChild(ce({name: "h2", content: "Other"}));
-        secOther.style.removeProperty("display");
-        if (configuration.otherBool.length > 0) {
-            secOther.appendChild(ce({
-                name: "div",
-                class: "view-checkboxes-row",
-                content: configuration.otherBool.map(item => {
-                    const index = kebabify(item);
-                    return {
-                        name: "div",
-                        class: "view-row",
-                        content: `${entry.otherBool[index] ? "☑" : "⬜"} ${item}`
-                    } satisfies CEOptions<"div">;
-                })
-            }));
-        }
-        for (const item of configuration.otherScale) {
-            const index = kebabify(item);
-            secOther.appendChild(ce({
-                name: "p",
-                content: [
-                    {
-                        name: "strong",
-                        content: `${item}: `
-                    },
-                    capitalizeFirst(entry.otherScale[index])
-                ]
-            }));
-        }
-    } else secOther.style.display = "none";
+    }
     masonry(sections, 2, 1);
 });
 
@@ -1651,93 +1889,187 @@ document.getElementById("panel-scout-stands")!.addEventListener("transitionedto"
     (document.getElementById("scout-stands-offense-notes") as HTMLTextAreaElement).value = "";
     (document.getElementById("scout-stands-drive-rating") as HTMLInputElement).value = "";
     (document.getElementById("scout-stands-cycle-time") as HTMLInputElement).value = "";
-    const secScoring = document.getElementById("scout-stands-sec-scoring")!;
-    const secMobility = document.getElementById("scout-stands-sec-mobility")!;
-    const secOther = document.getElementById("scout-stands-sec-other")!;
+    const footer = document.getElementById("scout-stands-footer");
+    document.querySelectorAll("#panel-scout-stands > .scout-section.scout-section-seasonal").forEach(el => el.remove());
     const secMatch = document.getElementById("scout-stands-sec-match")!;
     const secDriving = document.getElementById("scout-stands-sec-driving")!;
-    const sections = [
-        secMatch,
-        secDriving,
-        secScoring,
-        secMobility,
-        secOther
-    ];
-    Array.from(secScoring.children).forEach(el => el.remove());
-    Array.from(secMobility.children).forEach(el => el.remove());
-    Array.from(secOther.children).forEach(el => el.remove());
-    if (configuration.scoring.length > 0) {
-        secScoring.appendChild(ce({name: "h2", content: "Scoring"}));
-        secScoring.style.removeProperty("display");
-        makeAbilityFieldset(configuration.scoring, ["Consistently", "Generally", "Rarely", "Never"], "scout-stands-scoring-", secScoring);
-    } else secScoring.style.display = "none";
-    if (configuration.mobility.length > 0) {
-        secMobility.appendChild(ce({name: "h2", content: "Mobility"}));
-        secMobility.style.removeProperty("display");
-        makeAbilityFieldset(configuration.mobility, ["Always", "Sometimes", "Never"], "scout-stands-mobility-", secMobility);
-    } else secMobility.style.display = "none";
-    if (configuration.otherBool.length + configuration.otherScale.length > 0) {
-        secOther.appendChild(ce({name: "h2", content: "Other"}));
-        secOther.style.removeProperty("display");
-        if (configuration.otherBool.length > 0) {
-            secOther.appendChild(ce({
-                name: "div",
-                class: "scout-checkboxes-row",
-                content: configuration.otherBool.map(item => {
-                    const index = kebabify(item);
-                    const id = `scout-stands-other-bool-${index}`;
-                    return {
+    const sections = [secMatch, secDriving];
+    for (const section of configuration.sections) {
+        if (!section.stands) continue;
+        const el = ce({
+            name: "div",
+            class: ["scout-section", "scout-section-seasonal"],
+            dataset: {title: section.title},
+            content: [
+                {name: "h2", content: section.title}
+            ]
+        });
+        sections.push(el);
+        document.getElementById("panel-scout-stands")!.insertBefore(el, footer);
+        for (const item of section.items) {
+            const name = makeid(16, 64);
+            switch (item.type) {
+                case "number": {
+                    el.appendChild(ce({
                         name: "div",
                         class: "scout-row",
                         content: [
                             {
-                                name: "input",
-                                id,
-                                dataset: {item, index},
-                                attrs: {
-                                    type: "checkbox",
-                                    name: id,
-                                }
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
                             },
                             {
-                                name: "label",
-                                htmlFor: id,
-                                content: item
+                                name: "input",
+                                type: "number",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name},
+                                min: item.min?.toString(),
+                                value: item.default?.toString(),
+                                max: item.max?.toString(),
+                                step: item.step?.toString()
                             }
                         ]
-                    } satisfies CEOptions<"div">;
-                })
-            }));
+                    }));
+                    break;
+                }
+                case "select": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "select",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name},
+                                content: item.options.map(opt => ({
+                                    name: "option",
+                                    content: opt
+                                } satisfies CEOptions))
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "text": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "textarea",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name}
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "short-text": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "text",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name},
+                            }
+                        ]
+                    }));
+                    if (item.suggestions) {
+                        el.lastElementChild!.lastElementChild!.setAttribute("list", "scout-stands-list-" + name),
+                        el.lastElementChild!.appendChild(ce({
+                            name: "datalist",
+                            id: "scout-stands-list-" + name,
+                            content: item.suggestions.map(opt => ({
+                                name: "option",
+                                content: opt
+                            } satisfies CEOptions))
+                        }));
+                    }
+                    break;
+                }
+                case "slider": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "range",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name},
+                                min: item.min.toString(),
+                                value: item.default.toString(),
+                                max: item.max.toString(),
+                                step: item.step?.toString()
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "checkbox": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-stands-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "checkbox",
+                                dataset: {label: item.label},
+                                id: "scout-stands-" + name,
+                                attrs: {name: "scout-stands-" + name},
+                            }
+                        ]
+                    }));
+                    break;
+                }
+            }
         }
-        makeAbilityFieldset(configuration.otherScale, ["Consistently", "Generally", "Rarely", "Never"], "scout-stands-other-scale-", secOther);
-    } else secOther.style.display = "none";
+    }
     masonry(sections, 2, 1);
 });
 
 document.getElementById("scout-stands-back")!.addEventListener("click", async () => {
-    await switchToPanel("teams");
+    await back();
 });
 
 (document.getElementById("scout-stands-save") as HTMLButtonElement).addEventListener("click", async function() {
     if (!entries) return;
     this.disabled = true;
     try {
-        function getSectionEntries(section: string) {
-            return Object.fromEntries(
-                Array.from(document.querySelectorAll<HTMLFieldSetElement>(`#scout-stands-sec-${section} > fieldset`))
-                    .map(el => [
-                        el.dataset.index,
-                        (throwAndPulseColorIf(
-                            Array.from(el.children)
-                                .find(el2 => el2 instanceof HTMLInputElement && el2.checked),
-                            v => v === undefined,
-                            el,
-                            "#f00",
-                            0
-                        ) as HTMLInputElement).value
-                    ])
-            );
-        }
         const teamNumber = document.getElementById("scout-stands-team-number")!.innerText;
         const entry: StandsScoutData = {
             type: "stands",
@@ -1799,10 +2131,16 @@ document.getElementById("scout-stands-back")!.addEventListener("click", async ()
                 "#f00",
                 0
             ),
-            scoring: getSectionEntries("scoring"),
-            mobility: getSectionEntries("mobility"),
-            otherScale: getSectionEntries("other"),
-            otherBool: Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('#scout-stands-sec-other input[name^="scout-stands-other-bool"]')).map(el => [el.dataset.index, el.checked]))
+            data: Object.fromEntries(Array.from(document.querySelectorAll<HTMLDivElement>("#panel-scout-stands .scout-section-seasonal")).map(sec =>
+                [sec.dataset.title || "", Object.fromEntries(Array.from(sec.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea")).map(el => [
+                    el.dataset.label || "",
+                    el instanceof HTMLInputElement ?
+                        el.type == "checkbox" ? el.checked
+                        : el.type == "number" || el.type == "range" ? +el.value
+                        : el.value
+                    : el.value
+                ]))]
+            ))
         };
         const team = getTeam(teamNumber);
         if (!team) return;
@@ -1831,70 +2169,180 @@ document.getElementById("panel-scout-pits")!.addEventListener("transitionedto", 
     (document.getElementById("scout-pits-cycle-time") as HTMLInputElement).value = String(latestPitsEntry?.cycleTime || "");
     (document.getElementById("scout-pits-will-change") as HTMLInputElement).checked = false;
     (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).value = "";
-    const secScoring = document.getElementById("scout-pits-sec-scoring")!;
-    const secMobility = document.getElementById("scout-pits-sec-mobility")!;
-    const secOther = document.getElementById("scout-pits-sec-other")!;
+    const footer = document.getElementById("scout-pits-footer");
+    document.querySelectorAll("#panel-scout-pits > .scout-section.scout-section-seasonal").forEach(el => el.remove());
     const secRobot = document.getElementById("scout-pits-sec-robot")!;
-    const sections = [
-        secRobot,
-        secScoring,
-        secMobility,
-        secOther
-    ];
-    Array.from(secScoring.children).forEach(el => el.remove());
-    Array.from(secMobility.children).forEach(el => el.remove());
-    Array.from(secOther.children).forEach(el => el.remove());
-    if (configuration.scoring.length > 0) {
-        secScoring.appendChild(ce({name: "h2", content: "Scoring"}));
-        secScoring.style.removeProperty("display");
-        makeAbilityFieldset(configuration.scoring, ["Consistently", "Generally", "Rarely", "Never"], "scout-pits-scoring-", secScoring, latestPitsEntry?.scoring);
-    } else secScoring.style.display = "none";
-    if (configuration.mobility.length > 0) {
-        secMobility.appendChild(ce({name: "h2", content: "Mobility"}));
-        secMobility.style.removeProperty("display");
-        makeAbilityFieldset(configuration.mobility, ["Always", "Sometimes", "Never"], "scout-pits-mobility-", secMobility, latestPitsEntry?.mobility);
-    } else secMobility.style.display = "none";
-    if (configuration.otherBool.length + configuration.otherScale.length > 0) {
-        secOther.appendChild(ce({name: "h2", content: "Other"}));
-        secOther.style.removeProperty("display");
-        if (configuration.otherBool.length > 0) {
-            secOther.appendChild(ce({
-                name: "div",
-                class: "scout-checkboxes-row",
-                content: configuration.otherBool.map(item => {
-                    const index = kebabify(item);
-                    const id = `scout-pits-other-bool-${index}`;
-                    return {
+    const sections = [secRobot];
+    for (const section of configuration.sections) {
+        if (!section.pits) continue;
+        const el = ce({
+            name: "div",
+            class: ["scout-section", "scout-section-seasonal"],
+            dataset: {title: section.title},
+            content: [
+                {name: "h2", content: section.title}
+            ]
+        });
+        sections.push(el);
+        document.getElementById("panel-scout-pits")!.insertBefore(el, footer);
+        for (const item of section.items) {
+            const name = makeid(16, 64);
+            switch (item.type) {
+                case "number": {
+                    el.appendChild(ce({
                         name: "div",
                         class: "scout-row",
                         content: [
                             {
-                                name: "input",
-                                id,
-                                dataset: {item, index},
-                                attrs: {
-                                    type: "checkbox",
-                                    name: id,
-                                },
-                                checked: latestPitsEntry?.otherBool[index] || false
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
                             },
                             {
-                                name: "label",
-                                htmlFor: id,
-                                content: item
+                                name: "input",
+                                type: "number",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name},
+                                min: item.min?.toString(),
+                                value: item.default?.toString(),
+                                max: item.max?.toString(),
+                                step: item.step?.toString()
                             }
                         ]
-                    } satisfies CEOptions<"div">;
-                })
-            }));
+                    }));
+                    break;
+                }
+                case "select": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "select",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name},
+                                content: item.options.map(opt => ({
+                                    name: "option",
+                                    content: opt
+                                } satisfies CEOptions))
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "text": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "textarea",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name}
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "short-text": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "text",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name},
+                            }
+                        ]
+                    }));
+                    if (item.suggestions) {
+                        el.lastElementChild!.lastElementChild!.setAttribute("list", "scout-pits-list-" + name),
+                        el.lastElementChild!.appendChild(ce({
+                            name: "datalist",
+                            id: "scout-pits-list-" + name,
+                            content: item.suggestions.map(opt => ({
+                                name: "option",
+                                content: opt
+                            } satisfies CEOptions))
+                        }));
+                    }
+                    break;
+                }
+                case "slider": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "range",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name},
+                                min: item.min.toString(),
+                                value: item.default.toString(),
+                                max: item.max.toString(),
+                                step: item.step?.toString()
+                            }
+                        ]
+                    }));
+                    break;
+                }
+                case "checkbox": {
+                    el.appendChild(ce({
+                        name: "div",
+                        class: "scout-row",
+                        content: [
+                            {
+                                name: "label",
+                                htmlFor: "scout-pits-" + name,
+                                content: item.label
+                            },
+                            {
+                                name: "input",
+                                type: "checkbox",
+                                dataset: {label: item.label},
+                                id: "scout-pits-" + name,
+                                attrs: {name: "scout-pits-" + name},
+                            }
+                        ]
+                    }));
+                    break;
+                }
+            }
         }
-        makeAbilityFieldset(configuration.otherScale, ["Consistently", "Generally", "Rarely", "Never"], "scout-pits-other-scale-", secOther, latestPitsEntry?.otherScale);
-    } else secOther.style.display = "none";
+    }
     masonry(sections, 2, 1);
 });
 
 document.getElementById("scout-pits-back")!.addEventListener("click", async () => {
-    await switchToPanel("teams");
+    await back();
 });
 
 (document.getElementById("scout-pits-will-change-at") as HTMLInputElement).addEventListener("change", function() {
@@ -1942,10 +2390,16 @@ document.getElementById("scout-pits-back")!.addEventListener("click", async () =
                 "#f00",
                 0
             ),
-            scoring: getSectionEntries("scoring"),
-            mobility: getSectionEntries("mobility"),
-            otherScale: getSectionEntries("other"),
-            otherBool: Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('#scout-pits-sec-other input[name^="scout-pits-other-bool"]')).map(el => [el.dataset.index, el.checked])),
+            data: Object.fromEntries(Array.from(document.querySelectorAll<HTMLDivElement>("#panel-scout-pits .scout-section-seasonal")).map(sec =>
+                [sec.dataset.title || "", Object.fromEntries(Array.from(sec.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea")).map(el => [
+                    el.dataset.label || "",
+                    el instanceof HTMLInputElement ?
+                        el.type == "checkbox" ? el.checked
+                        : el.type == "number" || el.type == "range" ? +el.value
+                        : el.value
+                    : el.value
+                ]))]
+            )),
             willChange
         };
         const team = getTeam(teamNumber);
@@ -2147,75 +2601,75 @@ const exportFilters: {[x: string]: (data: TeamSpecificScoutData[]) => TeamSpecif
         }
         return Object.values(entriesMap);
     },
-    standsAggregation(data) {
-        const standsEntries = data.filter(e => e.type == "stands");
-        const entriesMap: {[team: string]: (StandsScoutData & {team: string})[]} = {};
-        for (const e of standsEntries) {
-            entriesMap[e.team] ??= [];
-            entriesMap[e.team].push(e);
-        }
-        return Object.entries(entriesMap).map(([team, entries]) => {
-            const by = entries.map(e => e.by).filter((val, idx, arr) => arr.indexOf(val) === idx);
-            const matchNumbers = entries.map(e => e.matchNumber).filter((val, idx, arr) => arr.indexOf(val) === idx);
-            const matchTypes = entries.map(e => e.matchType).filter((val, idx, arr) => arr.indexOf(val) === idx);
-            return {
-                by: by.length == 1 ? by[0] : by.length == 0 ? "(none)" : "(various)",
-                type: "stands",
-                when: Math.max(...entries.map(e => e.when)),
-                team,
-                matchNumber: matchNumbers.length == 1 ? matchNumbers[0] : matchNumbers.length == 0 ? -2 : -1,
-                matchType: matchTypes.length == 1 ? matchTypes[0] : matchTypes.length == 0 ? "(none)" : "(various)",
-                allianceScore: mean(entries.map(e => e.allianceScore)),
-                defenseNotes: entries.map(e => e.defenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.defenseNotes}` : undefined).filter(v => v).join("\n\n"),
-                offenseNotes: entries.map(e => e.offenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.offenseNotes}` : undefined).filter(v => v).join("\n\n"),
-                droppedItems: Boolean(Math.round(mean(entries.map(e => e.droppedItems).map(v => +v)))),
-                aStop: Boolean(Math.round(mean(entries.map(e => e.aStop).map(v => +v)))),
-                eStop: Boolean(Math.round(mean(entries.map(e => e.eStop).map(v => +v)))),
-                died: Boolean(Math.round(mean(entries.map(e => e.died).map(v => +v)))),
-                won: Boolean(Math.round(mean(entries.map(e => e.won).map(v => +v)))),
-                carried: Boolean(Math.round(mean(entries.map(e => e.carried).map(v => +v)))),
-                wereCarried: Boolean(Math.round(mean(entries.map(e => e.wereCarried).map(v => +v)))),
-                cycleTime: mean(entries.map(e => e.cycleTime)),
-                driveRating: mean(entries.map(e => e.driveRating)),
-                scoring: Object.fromEntries(
-                    Object.entries(objectArrayValues(entries.map(e => e.scoring)))
-                        .map(([key, values]) =>
-                            [
-                                key,
-                                frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
-                            ] as [string, string]
-                        )
-                ),
-                mobility: Object.fromEntries(
-                    Object.entries(objectArrayValues(entries.map(e => e.mobility)))
-                        .map(([key, values]) =>
-                            [
-                                key,
-                                mobilityMapReverse[Math.round(mean(values.map(v => mobilityMap[v] || 0)))]
-                            ] as [string, string]
-                        )
-                ),
-                otherBool: Object.fromEntries(
-                    Object.entries(objectArrayValues(entries.map(e => e.otherBool)))
-                        .map(([key, values]) =>
-                            [
-                                key,
-                                !!Math.round(mean(values.map(v => +v)))
-                            ] as [string, boolean]
-                        )
-                ),
-                otherScale: Object.fromEntries(
-                    Object.entries(objectArrayValues(entries.map(e => e.otherScale)))
-                        .map(([key, values]) =>
-                            [
-                                key,
-                                frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
-                            ] as [string, string]
-                        )
-                )
-            } satisfies StandsScoutData & {team: string};
-        })
-    }
+    // standsAggregation(data) {
+    //     const standsEntries = data.filter(e => e.type == "stands");
+    //     const entriesMap: {[team: string]: (StandsScoutData & {team: string})[]} = {};
+    //     for (const e of standsEntries) {
+    //         entriesMap[e.team] ??= [];
+    //         entriesMap[e.team].push(e);
+    //     }
+    //     return Object.entries(entriesMap).map(([team, entries]) => {
+    //         const by = entries.map(e => e.by).filter((val, idx, arr) => arr.indexOf(val) === idx);
+    //         const matchNumbers = entries.map(e => e.matchNumber).filter((val, idx, arr) => arr.indexOf(val) === idx);
+    //         const matchTypes = entries.map(e => e.matchType).filter((val, idx, arr) => arr.indexOf(val) === idx);
+    //         return {
+    //             by: by.length == 1 ? by[0] : by.length == 0 ? "(none)" : "(various)",
+    //             type: "stands",
+    //             when: Math.max(...entries.map(e => e.when)),
+    //             team,
+    //             matchNumber: matchNumbers.length == 1 ? matchNumbers[0] : matchNumbers.length == 0 ? -2 : -1,
+    //             matchType: matchTypes.length == 1 ? matchTypes[0] : matchTypes.length == 0 ? "(none)" : "(various)",
+    //             allianceScore: mean(entries.map(e => e.allianceScore)),
+    //             defenseNotes: entries.map(e => e.defenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.defenseNotes}` : undefined).filter(v => v).join("\n\n"),
+    //             offenseNotes: entries.map(e => e.offenseNotes > "" ? `(${e.by} ${stringifyDate(e.when)})\n${e.offenseNotes}` : undefined).filter(v => v).join("\n\n"),
+    //             droppedItems: Boolean(Math.round(mean(entries.map(e => e.droppedItems).map(v => +v)))),
+    //             aStop: Boolean(Math.round(mean(entries.map(e => e.aStop).map(v => +v)))),
+    //             eStop: Boolean(Math.round(mean(entries.map(e => e.eStop).map(v => +v)))),
+    //             died: Boolean(Math.round(mean(entries.map(e => e.died).map(v => +v)))),
+    //             won: Boolean(Math.round(mean(entries.map(e => e.won).map(v => +v)))),
+    //             carried: Boolean(Math.round(mean(entries.map(e => e.carried).map(v => +v)))),
+    //             wereCarried: Boolean(Math.round(mean(entries.map(e => e.wereCarried).map(v => +v)))),
+    //             cycleTime: mean(entries.map(e => e.cycleTime)),
+    //             driveRating: mean(entries.map(e => e.driveRating)),
+    //             scoring: Object.fromEntries(
+    //                 Object.entries(objectArrayValues(entries.map(e => e.scoring)))
+    //                     .map(([key, values]) =>
+    //                         [
+    //                             key,
+    //                             frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
+    //                         ] as [string, string]
+    //                     )
+    //             ),
+    //             mobility: Object.fromEntries(
+    //                 Object.entries(objectArrayValues(entries.map(e => e.mobility)))
+    //                     .map(([key, values]) =>
+    //                         [
+    //                             key,
+    //                             mobilityMapReverse[Math.round(mean(values.map(v => mobilityMap[v] || 0)))]
+    //                         ] as [string, string]
+    //                     )
+    //             ),
+    //             otherBool: Object.fromEntries(
+    //                 Object.entries(objectArrayValues(entries.map(e => e.otherBool)))
+    //                     .map(([key, values]) =>
+    //                         [
+    //                             key,
+    //                             !!Math.round(mean(values.map(v => +v)))
+    //                         ] as [string, boolean]
+    //                     )
+    //             ),
+    //             otherScale: Object.fromEntries(
+    //                 Object.entries(objectArrayValues(entries.map(e => e.otherScale)))
+    //                     .map(([key, values]) =>
+    //                         [
+    //                             key,
+    //                             frequencyMapReverse[Math.round(mean(values.map(v => frequencyMap[v] || 0)))]
+    //                         ] as [string, string]
+    //                     )
+    //             )
+    //         } satisfies StandsScoutData & {team: string};
+    //     })
+    // }
 };
 
 async function exportCsv(
@@ -2224,7 +2678,7 @@ async function exportCsv(
 ) {
     if (!configuration) throw new Error();
     const filter = exportFilters[(document.getElementById("export-csv-filter") as HTMLInputElement).value] || (data => data);
-    const data = filter(Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k})))).map(e => flattenObject(e));
+    const data = filter(Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k})))).map(e => flattenObject(e, "/"));
     const columns = [
         "by",
         "when",
@@ -2247,10 +2701,7 @@ async function exportCsv(
         "drivetrain",
         "leds",
         "willChange",
-        ...configuration.scoring.map(s => "scoring." + kebabify(s)),
-        ...configuration.mobility.map(s => "mobility." + kebabify(s)),
-        ...configuration.otherBool.map(s => "otherBool." + kebabify(s)),
-        ...configuration.otherScale.map(s => "otherScale." + kebabify(s)),
+        ...configuration.sections.flatMap(s => s.items.map(i => s.title + "/" + i.label)).filter((val, idx, arr) => arr.indexOf(val) === idx),
     ];
     const targetTime = 5;
     let chunkSize = 10;
@@ -2379,7 +2830,7 @@ document.getElementById("export-qr-back")!.addEventListener("click", async () =>
 
 document.getElementById("export-qr-generate")!.addEventListener("click", async () => {
     if (!configuration) throw new Error();
-    const data = Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k}))).map(e => flattenObject(e));
+    const data = Object.entries(entries!).flatMap(([k, vs]) => vs.map(v => ({...v, team: k}))).map(e => flattenObject(e, "/"));
     const columns = [
         "by",
         "when",
@@ -2402,10 +2853,7 @@ document.getElementById("export-qr-generate")!.addEventListener("click", async (
         "drivetrain",
         "leds",
         "willChange",
-        ...configuration.scoring.map(s => "scoring." + kebabify(s)),
-        ...configuration.mobility.map(s => "mobility." + kebabify(s)),
-        ...configuration.otherBool.map(s => "otherBool." + kebabify(s)),
-        ...configuration.otherScale.map(s => "otherScale." + kebabify(s)),
+        ...configuration.sections.flatMap(s => s.items.map(i => s.title + "/" + i.label)).filter((val, idx, arr) => arr.indexOf(val) === idx),
     ];
     const size = 4000;
     let chunk = columns.join(",");
@@ -2461,40 +2909,150 @@ document.getElementById("export-qr-generate")!.addEventListener("click", async (
 
 (document.getElementById("preset-frc-2024-crescendo") as HTMLInputElement).value = JSON.stringify({
     competition: "FRC 2024: Crescendo",
-    scoring: ["Speaker", "Amp", "Climb", "Trap", "Harmony", "Triple Harmony"],
-    mobility: ["Under Stage"],
-    otherBool: [],
-    otherScale: []
+    sections: [
+        {
+            title: "Scoring",
+            items: [
+                {label: "Shoot into Speaker", type: "checkbox"},
+                {label: "Score into Amp", type: "checkbox"},
+                {label: "Score in Auto", type: "select", options: ["No", "Once", "Twice or More"]}
+            ],
+            stands: true,
+            pits: true
+        },
+        {
+            title: "Intake",
+            items: [
+                {label: "Intake from Source", type: "checkbox"},
+                {label: "Intake from Ground", type: "checkbox"}
+            ],
+            stands: true,
+            pits: true
+        },
+        {
+            title: "Intake",
+            items: [
+                {label: "Fit under Stage", type: "select", options: ["No", "Sometimes (arm is down, etc.)", "Always"]},
+            ],
+            stands: true,
+            pits: true
+        },
+        {
+            title: "Endgame",
+            items: [
+                {label: "Climb", type: "checkbox"},
+                {label: "Trap Note", type: "checkbox"},
+                {label: "Harmonize", type: "select", options: ["No", "Normal", "Triple"]}
+            ],
+            stands: true,
+            pits: true
+        }
+    ],
 } satisfies SeasonConfig);
 
 (document.getElementById("preset-bunnybots-2024-balloon-a-palooza") as HTMLInputElement).value = JSON.stringify({
     competition: "Bunnybots 2024: Balloon-a-Palooza",
-    scoring: ["Low Zone", "Tote"],
-    mobility: [],
-    otherBool: ["Empty Corral Quickly", "Minibot"],
-    otherScale: []
+    sections: [
+        {
+            title: "Scoring",
+            items: [
+                {label: "Low Zone", type: "checkbox"},
+                {label: "Tote", type: "checkbox"},
+                {label: "Empty Corral Quickly", type: "checkbox"}
+            ],
+            stands: true,
+            pits: true
+        },
+    ],
 } satisfies SeasonConfig);
 
 (document.getElementById("preset-frc-2025-reefscape") as HTMLInputElement).value = JSON.stringify({
     competition: "FRC 2025: Reefscape",
-    scoring: [
-        "Leave",
-        "Coral in L1",
-        "Coral in L2",
-        "Coral in L3",
-        "Coral in L4",
-        "Algae in Processor",
-        "Algae in Net",
-        "Park",
-        "Shallow Climb",
-        "Deep Climb"
-    ],
-    mobility: ["Under Shallow Cage", "Between Cages"],
-    otherBool: [],
-    otherScale: [
-        "Intake Coral from Coral Station",
-        "Remove Algae from Reef",
-        "Human Player Throwing Algae"
+    sections: [
+        {
+            title: "Reef",
+            items: [
+                {label: "Coral in Trough (L1)", type: "number", min: 0, default: 0, step: 1},
+                {label: "Coral on L2", type: "number", min: 0, default: 0, step: 1},
+                {label: "Coral on L3", type: "number", min: 0, default: 0, step: 1},
+                {label: "Coral on L4", type: "number", min: 0, default: 0, step: 1},
+                {label: "Coral Scored in Auto", type: "number", min: 0, default: 0, step: 1}
+            ],
+            stands: true,
+            pits: false
+        },
+        {
+            title: "Reef",
+            items: [
+                {label: "Coral in Trough (L1)", type: "checkbox"},
+                {label: "Coral on L2", type: "checkbox"},
+                {label: "Coral on L3", type: "checkbox"},
+                {label: "Coral on L4", type: "checkbox"},
+                {label: "Coral Scoring in Auto", type: "checkbox"}
+            ],
+            stands: false,
+            pits: true
+        },
+        {
+            title: "Intake",
+            items: [
+                {label: "Coral from Coral Station", type: "checkbox"},
+                {label: "Coral from Ground", type: "checkbox"},
+                {label: "Algae from Reef", type: "select", options: ["No", "Remove", "Remove and Hold"]},
+                {label: "Algae from Ground", type: "select", options: ["No", "Only when stacked", "Yes"]},
+                {label: "Coral Preloaded", type: "checkbox"}
+            ],
+            stands: true,
+            pits: false
+        },
+        {
+            title: "Intake",
+            items: [
+                {label: "Coral from Coral Station", type: "checkbox"},
+                {label: "Coral from Ground", type: "checkbox"},
+                {label: "Algae from Reef", type: "select", options: ["No", "Remove", "Remove and Hold"]},
+                {label: "Algae from Ground", type: "select", options: ["No", "Only when stacked", "Yes"]}
+            ],
+            stands: false,
+            pits: true
+        },
+        {
+            title: "Scoring Algae",
+            items: [
+                {label: "Algae in Processor", type: "number", min: 0, default: 0, step: 1},
+                {label: "Algae in Net from Processor", type: "number", min: 0, default: 0, step: 1},
+                {label: "Algae in Net from Robot", type: "number", min: 0, default: 0, step: 1}
+            ],
+            stands: true,
+            pits: false
+        },
+        {
+            title: "Scoring Algae",
+            items: [
+                {label: "Algae in Processor", type: "checkbox"},
+                {label: "Algae in Net from Processor", type: "checkbox"},
+                {label: "Algae in Net from Robot", type: "checkbox"}
+            ],
+            stands: false,
+            pits: true
+        },
+        {
+            title: "Endgame",
+            items: [
+                {label: "Endgame Strategy", type: "select", options: ["None/Keep scoring normally", "Park", "Shallow Cage", "Deep Cage"]},
+                {label: "Endgame Successful", type: "checkbox"}
+            ],
+            stands: true,
+            pits: false
+        },
+        {
+            title: "Endgame",
+            items: [
+                {label: "Endgame Strategy", type: "select", options: ["None/Keep scoring normally", "Park", "Shallow Cage", "Deep Cage"]},
+            ],
+            stands: false,
+            pits: true
+        }
     ]
 } satisfies SeasonConfig);
 

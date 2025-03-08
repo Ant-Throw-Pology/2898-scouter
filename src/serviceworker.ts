@@ -12,6 +12,8 @@ const toCache = [
     '/2898-scouter/favicon-192.png',
     '/2898-scouter/favicon-512.png',
     '/2898-scouter/bin.svg',
+    '/2898-scouter/teams-list-start.png',
+    '/2898-scouter/teams-list-end.png',
 ];
 
 const me = self as unknown as ServiceWorkerGlobalScope;
