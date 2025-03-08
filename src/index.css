@@ -754,11 +754,12 @@ input[type=radio]:checked::before {
 }
 
 @media (max-width: 80ch) {
-    #panel-scout-stands, #panel-scout-pits {
+    #panel-scout-stands, #panel-scout-pits, #panel-view-stands, #panel-view-pits {
         grid-template-columns: 30ch;
+        grid-template-rows: auto !important; /* override inline styles set by DIY masonry; easier to do this than unset them in script */
     }
-    .scout-section {
-        grid-area: auto !important; /* override inline styles set by DIY masonry; easier to do this than unset them in script */
+    .scout-section, .view-section {
+        grid-area: auto !important; /* same */
     }
 }
 

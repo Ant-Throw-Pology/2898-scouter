@@ -215,42 +215,6 @@ function kebabify(str: string) {
     return str.toLowerCase().replace(/[^\w]/g, "-").replace(/-+/g, "-").replace(/^-*|-*$/g, "");
 }
 
-function makeAbilityFieldset(items: string[], selections: string[], idPrefix: string, element: HTMLElement, values?: {[x: string]: string}) {
-    for (const item of items) {
-        const index = kebabify(item);
-        const name = idPrefix + index;
-        element.appendChild(ce({
-            name: "fieldset",
-            dataset: {item, index},
-            content: [
-                {name: "legend", content: item},
-                ...selections.flatMap((v, i) => {
-                    const value = v.toLowerCase();
-                    const id = `${name}-${value}`;
-                    return [
-                        ...(i > 0 ? [{name: "br" as "br"}] : []),
-                        {
-                            name: "input",
-                            id,
-                            attrs: {
-                                type: "radio",
-                                name,
-                                value
-                            },
-                            checked: values && values[index] == value
-                        },
-                        {
-                            name: "label",
-                            htmlFor: id,
-                            content: v
-                        }
-                    ] satisfies CEOptions[]
-                })
-            ]
-        }));
-    }
-}
-
 function masonry(elements: HTMLElement[], numCols: number, leadingRows: number = 0) {
     const heights = new Map(
         elements
@@ -291,6 +255,7 @@ function masonry(elements: HTMLElement[], numCols: number, leadingRows: number =
         const bottomN = rowLines2.indexOf(bottom);
         el.style.gridArea = `${topN + 1 + leadingRows} / ${col + 1} / ${bottomN + 1 + leadingRows} / ${col + 2}`;
     }
+    return rowLines2.slice(0, -1).map((v, i) => rowLines2[i + 1] - v);
 }
 
 function flattenObject(obj: {[x: string]: any}, splitter: string = ".", _result: {[x: string]: any} = {}, _prefix: string = "") {
@@ -1800,7 +1765,7 @@ document.getElementById("panel-view-stands")!.addEventListener("transitionedto",
             }));
         }
     }
-    masonry(sections, 2, 1);
+    document.getElementById("panel-view-stands")!.style.gridTemplateRows = `auto ${masonry(sections, 2, 1).map(v => v + "px").join(" ")} auto`;
 });
 
 document.getElementById("view-stands-back-1")!.addEventListener("click", async () => {
@@ -1852,7 +1817,7 @@ document.getElementById("panel-view-pits")!.addEventListener("transitionedto", f
             }));
         }
     }
-    masonry(sections, 2, 1);
+    document.getElementById("panel-view-pits")!.style.gridTemplateRows = `auto ${masonry(sections, 2, 1).map(v => v + "px").join(" ")} auto`;
 });
 
 document.getElementById("view-pits-back-1")!.addEventListener("click", async () => {
@@ -2059,7 +2024,7 @@ document.getElementById("panel-scout-stands")!.addEventListener("transitionedto"
             }
         }
     }
-    masonry(sections, 2, 1);
+    document.getElementById("panel-scout-stands")!.style.gridTemplateRows = `auto ${masonry(sections, 2, 1).map(v => v + "px").join(" ")} auto`;
 });
 
 document.getElementById("scout-stands-back")!.addEventListener("click", async () => {
@@ -2338,7 +2303,7 @@ document.getElementById("panel-scout-pits")!.addEventListener("transitionedto", 
             }
         }
     }
-    masonry(sections, 2, 1);
+    document.getElementById("panel-scout-pits")!.style.gridTemplateRows = `auto ${masonry(sections, 2, 1).map(v => v + "px").join(" ")} auto`;
 });
 
 document.getElementById("scout-pits-back")!.addEventListener("click", async () => {
